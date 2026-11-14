@@ -36,11 +36,19 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-.num, td.num, th.num, .kpi-val, .stat-num {
+.num, .kpi-val, .stat-num {
   font-variant-numeric: tabular-nums;
   direction: ltr;
   unicode-bidi: isolate;
   display: inline-block;
+}
+
+td.num, th.num {
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: table-cell;
+  text-align: left;
 }
 
 .sr-only {
@@ -663,6 +671,7 @@ tr.clickable-row:hover {
 .control-grid {
   display: grid;
   grid-template-columns: 1fr;
+  align-items: end;
   gap: 10px;
   background: #f9f7f2;
   border: 1px solid var(--border);
