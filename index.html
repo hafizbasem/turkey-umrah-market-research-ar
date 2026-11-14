@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow, noarchive" />
   <meta name="googlebot" content="noindex, nofollow, noarchive" />
   <link rel="icon" href="data:," />
-  <title>مرصد أبحاث سوق العمرة التركي (2025–2027) | الدمج البحثي الكامل</title>
+  <title>مرصد أبحاث سوق العمرة التركي (2025–2027) | المنصة المستقلة</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -16,10 +16,10 @@
   <header class="site-header">
     <div class="header-inner">
       <div class="brand-row">
-        <div class="brand-badge">بحث سوقي صرف · 90 صفحة مصدرية مدمجة</div>
+        <div class="brand-badge">مرصد أبحاث سوقي مستقل · محدّث مستمر</div>
         <div class="source-badges">
-          <span class="pill-source">الأطلس الموحد (40 صفحة)</span>
-          <span class="pill-source">الموسوعة المدمجة (50 صفحة)</span>
+          <span class="pill-source">الإفصاحات الرسمية (PEP · GASTAT · ديانت · THY)</span>
+          <span class="pill-source">الرصد الميداني الحي (+66 وكالة · 285 برنامجًا · Zair 98)</span>
         </div>
       </div>
       <div class="hero-grid">
@@ -40,8 +40,8 @@
       </div>
 
       <div class="search-bar-wrap">
-        <label for="global-search" class="sr-only">بحث شامل عبر الـ 90 صفحة والوكالات والأرقام</label>
-        <input id="global-search" type="search" class="search-input" placeholder="ابحث في الأبحاث والوكالات والصفحات الـ 90 (مثال: 659,000، Hisar، Asfâr، THY، سامسون، KDV، Albaraka)..." autocomplete="off" />
+        <label for="global-search" class="sr-only">بحث شامل عبر المؤشرات والوكالات والأرقام</label>
+        <input id="global-search" type="search" class="search-input" placeholder="ابحث في السوق والوكالات (+66) وإقبال وتمام رمضان (مثال: 659,000، إقبال، Hisar، تمام رمضان، THY، KDV، Zair)..." autocomplete="off" />
         <div id="search-results-panel" class="search-results hidden" aria-live="polite"></div>
       </div>
     </div>
@@ -50,18 +50,18 @@
   <nav class="tabs-nav" aria-label="أقسام البحث">
     <div class="tabs-scroll" role="tablist">
       <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="macro">حجم السوق والطلب</button>
-      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="aviation">الطيران والنقل (THY)</button>
-      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="agencies">الشركات والحيتان (32+)</button>
-      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="monthly">الموسمية والأسعار (H1)</button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="aviation">الطيران والمطارات والتأشيرة</button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="agencies">الشركات والتكتلات (+66)</button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="monthly">الأسعار، تمام رمضان وإقبال</button>
       <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="economics">التكاليف والضرائب والتسعير</button>
       <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="distribution">التسويق وقمع CRM</button>
-      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="pages">مستكشف الـ 90 صفحة</button>
-      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="audit">التدقيق والمصادر (A/B/C)</button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="briefs">ملفات التحقق والثغرات</button>
+      <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="audit">منهجية التدقيق والمصادر</button>
     </div>
   </nav>
 
   <main id="app-main" class="main-container">
-    <div id="loading-state" class="loading-box">جارٍ تحميل قاعدة البيانات البحثية الموحدة (40 صفحة + 50 صفحة)...</div>
+    <div id="loading-state" class="loading-box">جارٍ تحميل قاعدة البيانات البحثية المستقلة...</div>
 
     <section id="tab-macro" class="tab-panel hidden" role="tabpanel"></section>
     <section id="tab-aviation" class="tab-panel hidden" role="tabpanel"></section>
@@ -69,13 +69,13 @@
     <section id="tab-monthly" class="tab-panel hidden" role="tabpanel"></section>
     <section id="tab-economics" class="tab-panel hidden" role="tabpanel"></section>
     <section id="tab-distribution" class="tab-panel hidden" role="tabpanel"></section>
-    <section id="tab-pages" class="tab-panel hidden" role="tabpanel"></section>
+    <section id="tab-briefs" class="tab-panel hidden" role="tabpanel"></section>
     <section id="tab-audit" class="tab-panel hidden" role="tabpanel"></section>
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
-      <p><strong>نطاق الوثيقة:</strong> دراسة استخبارات سوقية خالصة مدمجة من ملفَي الـ 40 صفحة والـ 50 صفحة (90 صفحة إجمالًا). خالية كليًا من عروض الفنادق الفردية والروابط السحابية الخاصة والبيانات الشخصية.</p>
+      <p><strong>نطاق المنصة:</strong> دراسة استخبارات سوقية خالصة ومستقلة لسوق العمرة التركي (2025–2027) مخصصة لتحليل الطلب والشركات والأسعار والهوامش — خالية كليًا من دليل الفنادق والروابط السحابية الخاصة والبيانات الشخصية.</p>
       <p class="footer-meta">مرصد أبحاث فريق العمل — واجهة تحليلية مستقلة (RTL Arabic) | غير مفهرسة بمحركات البحث</p>
     </div>
   </footer>
