@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="googlebot" content="noindex, nofollow" />
+  <link rel="icon" href="data:," />
+  <title>تقويم وأسعار سوق العمرة التركي (سبتمبر 2026 – شوال 1448)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./prices.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand-row">
+        <span class="brand-badge">تقويم الأسعار الشهري | 2026-09-01 إلى نهاية شوال 1448</span>
+        <span class="brand-meta" id="hdrMeta">رصد الأسعار والغرف (2-3-4 أشخاص) وفنادق مكة والمدينة</span>
+      </div>
+      <div class="hero-grid">
+        <div>
+          <h1 class="site-title">أسعار سوق العمرة من تركيا: رصد شهري، فنادق المشي للحرم، والغرف الثنائية والثلاثية والرباعية</h1>
+          <p class="site-subtitle">
+            مقارنة تفاعلية لبرامج الشركات التركية من 1 سبتمبر 2026 حتى نهاية شوال 1448 (أوائل أبريل 2027) عبر 3 فئات مدة (7–10، 11–16، 17–40 يومًا) مع اسم فندق مكة ونجومه وقربه من الحرم والروابط الموثقة (Instagram وFacebook ومواقع الشركات).
+          </p>
+        </div>
+        <div class="fx-widget card-glass" aria-label="أداة تحويل العملة">
+          <div class="fx-title">العملة وسعر الصرف اللحظي</div>
+          <div class="fx-controls">
+            <button type="button" id="fxToggleBtn" class="btn-fx active">عرض بالدولار ($ USD)</button>
+            <label class="fx-rate-wrap">
+              <span>سعر الدولار (₺ TL):</span>
+              <input id="fxRateInput" type="number" step="0.05" min="20" max="100" value="44.20" />
+            </label>
+          </div>
+          <div class="fx-note" id="fxNoteText">المصدر المرجعي: USD/TRY ~ 44.20 (يُستخدم لتحويل البرامج المقومة بالليرة وتبديل العرض).</div>
+        </div>
+      </div>
+    </div>
+    <nav class="tabs-nav" aria-label="التنقل بين صفحات المرصد">
+      <div class="tabs-scroll">
+        <a class="tab-btn tab-link-page" href="./index.html">المرصد العام للسوق (الشركات والطيران والمنهجية)</a>
+        <a class="tab-btn tab-link-page active-page" href="./prices.html" aria-current="page">أسعار السوق والتقويم (سبتمبر 2026 – شوال 1448)</a>
+        <a class="tab-btn tab-link-page" href="#filtersSection">فلاتر التاريخ والفندق</a>
+        <a class="tab-btn tab-link-page" href="#matrixSection">مصفوفة 8 أشهر × 3 فئات</a>
+        <a class="tab-btn tab-link-page" href="#resultsSection">جدول البرامج والروابط الموثقة</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container main-shell">
+    <div id="loadError" class="card" style="display:none; border-color:#b91c1c; background:#fef2f2; color:#7f1d1d;"></div>
+
+    <!-- KPIs Strip -->
+    <section id="kpiSection" class="kpi-grid" aria-label="ملخص السوق المفلتر"></section>
+
+    <!-- Deep Filters Card -->
+    <section id="filtersSection" class="card filters-card">
+      <div class="card-head">
+        <div>
+          <h2>لوحة التصفية العميقة للتقويم والفنادق والأسباب السعرية</h2>
+          <p class="card-sub">اختر الشهر أو نطاق التواريخ أو اسم فندق مكة أو قناة النشر لتفسير تسعيرة كل شريحة ولماذا تتغير الأسعار عبر الموسم.</p>
+        </div>
+        <button type="button" id="resetFiltersBtn" class="btn-reset">إعادة ضبط كل الفلاتر</button>
+      </div>
+
+      <div id="monthPills" class="month-pills-grid" role="group" aria-label="اختيار الشهر"></div>
+
+      <div id="seasonPresets" class="filter-pills-row" role="group" aria-label="فترات هجرية وموسمية جاهزة" style="margin-bottom:12px;">
+        <span class="filter-group-label">مواسم سريعة:</span>
+      </div>
+
+      <div class="filter-section-grid">
+        <div class="filter-field">
+          <label for="dateFromInput">من تاريخ المغادرة</label>
+          <input id="dateFromInput" type="date" min="2026-09-01" max="2027-04-09" value="2026-09-01" />
+        </div>
+        <div class="filter-field">
+          <label for="dateToInput">إلى تاريخ المغادرة</label>
+          <input id="dateToInput" type="date" min="2026-09-01" max="2027-04-09" value="2027-04-08" />
+        </div>
+        <div class="filter-field">
+          <label for="tierSelect">مدة البرنامج (الفئة)</label>
+          <select id="tierSelect">
+            <option value="all">كل المدد (7–40 يومًا)</option>
+            <option value="7-10">7–10 أيام (برامج قصيرة ومختصرة)</option>
+            <option value="11-16">11–16 يومًا (برامج متوسطة قياسية)</option>
+            <option value="17-40">17–40 يومًا (برامج طويلة ورمضانية)</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="agencySelect">الشركة السياحية التركية</label>
+          <select id="agencySelect">
+            <option value="all">كل الشركات المرصودة</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-section-grid">
+        <div class="filter-field">
+          <label for="hotelSearchInput">بحث باسم فندق مكة (عربي / لاتيني) أو المدينة</label>
+          <input id="hotelSearchInput" type="text" list="makkahHotelList" placeholder="مثال: أنجم، سويس أوتيل، الصفوة، بولمان، دار التوحيد..." autocomplete="off" />
+          <datalist id="makkahHotelList"></datalist>
+        </div>
+        <div class="filter-field">
+          <label for="hotelSelect">اختيار فندق مكة المعتمد</label>
+          <select id="hotelSelect">
+            <option value="all">كل فنادق مكة</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="distanceSelect">القرب من المسجد الحرام</label>
+          <select id="distanceSelect">
+            <option value="all">كل المسافات (مشي + شتل)</option>
+            <option value="walking">مشي للحرم فقط (950 مترًا فأقل)</option>
+            <option value="walk_250">ساحة الحرم مباشرة (250 مترًا فأقل)</option>
+            <option value="walk_500">مشي قريب جدًا (500 متر فأقل)</option>
+            <option value="shuttle">فنادق شتل / مناطق محيطة (&gt; 950 م)</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="starsSelect">تصنيف فندق مكة (النجوم)</label>
+          <select id="starsSelect">
+            <option value="all">كل التصنيفات</option>
+            <option value="5">5 نجوم</option>
+            <option value="4">4 نجوم</option>
+            <option value="3">3 نجوم</option>
+            <option value="1-2">1–2 نجوم / اقتصادي</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="channelPills" class="filter-pills-row" role="group" aria-label="فلتر مصدر الإعلان">
+        <span class="filter-group-label">مصدر الإعلان والرابط:</span>
+      </div>
+
+      <div class="filter-actions-row">
+        <div class="budget-slider-wrap">
+          <label for="budgetMaxInput" class="filter-group-label">سقف الغرفة الرباعية: <strong id="budgetMaxLabel">الكل (بلا سقف)</strong></label>
+          <input id="budgetMaxInput" type="range" min="1000" max="8000" step="100" value="8000" />
+        </div>
+
+        <label class="toggle-check">
+          <input id="onlyFullRoomsCheck" type="checkbox" />
+          <span>إظهار العروض ذات تسعير 2+3+4 أشخاص الكامل فقط</span>
+        </label>
+
+        <label class="toggle-check">
+          <input id="onlyNamedHotelCheck" type="checkbox" />
+          <span>استبعاد الإعلانات غير المسمى فيها فندق مكة</span>
+        </label>
+
+        <div class="filter-field" style="min-width:190px;">
+          <select id="sortSelect" aria-label="ترتيب النتائج">
+            <option value="date_asc">ترتيب: تاريخ المغادرة (الأقرب أولًا)</option>
+            <option value="quad_asc">ترتيب: الأرخص للغرفة الرباعية</option>
+            <option value="quad_desc">ترتيب: الأعلى للغرفة الرباعية</option>
+            <option value="dist_asc">ترتيب: الأقرب للمسجد الحرام (بالمتر)</option>
+            <option value="days_desc">ترتيب: الأطول مدة بالأيام</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dynamic Hotel Spotlight (appears when user filters by a specific Makkah hotel) -->
+    <section id="hotelSpotlight" class="hotel-spotlight" style="display:none;" aria-live="polite"></section>
+
+    <!-- Seasonal Reason & Charts -->
+    <section class="grid-2" aria-label="تحليل الاتجاه السعري وفنادق المشي">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>مسار الأسعار الشهري عبر الفئات الثلاث (الوسيط للغرفة الرباعية)</h2>
+            <p class="card-sub">مقارنة قفزات الأسعار بين برامج 7–10 أيام و11–16 يومًا و17–40 يومًا من سبتمبر 2026 حتى شوال 1448.</p>
+          </div>
+        </div>
+        <div id="monthlyChartBox"></div>
+        <div id="seasonDriversNote" class="footnote" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>سلم أسعار فنادق المشي للحرم (الحد الأدنى – الوسيط – الأعلى)</h2>
+            <p class="card-sub">اضغط على أي شريط فندق لعرض كل الشركات المعلنة عنه وتفاصيل الغرف والتواريخ.</p>
+          </div>
+        </div>
+        <div id="hotelLadderBox"></div>
+      </div>
+    </section>
+
+    <!-- 8x3 Coverage & Median Matrix -->
+    <section id="matrixSection" class="card">
+      <div class="card-head">
+        <div>
+          <h2>مصفوفة الموسم (8 أشهر × 3 فئات مدة): عدد الشركات، الوسيط السعري، وتغطية فنادق المشي</h2>
+          <p class="card-sub">اضغط على أي خلية لتطبيق فلتر الشهر وفئة المدة فورًا ومقارنة جميع الشركات داخلها.</p>
+        </div>
+      </div>
+      <div id="coverageMatrixBox" class="table-wrap"></div>
+    </section>
+
+    <!-- Results Grid / Table -->
+    <section id="resultsSection" class="card">
+      <div class="results-toolbar">
+        <div>
+          <h2>العروض الموثقة حسب الفلاتر النشطة</h2>
+          <p class="card-sub" id="resultsSummaryText">جاري تحميل قاعدة الأسعار...</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button type="button" id="exportCsvBtn" class="btn-reset">تصدير النتائج المفلترة (CSV)</button>
+        </div>
+      </div>
+
+      <div id="desktopTableWrap" class="table-wrap desktop-only-table"></div>
+      <div id="mobileCardsWrap" class="pkg-cards-grid mobile-only-cards"></div>
+
+      <div id="paginationWrap" class="load-more-wrap"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>قاعدة رصد مستقلة لأسعار العمرة المعلنة في السوق التركي (سبتمبر 2026 – نهاية شوال 1448) — جميع الروابط مصدرية وقابلة للتحقق المباشر.</span>
+      <a href="./index.html" class="ext-link">العودة إلى المرصد العام للسوق</a>
+    </div>
+  </footer>
+
+  <!-- Slide-over Detail Drawer -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+  <aside id="detailDrawer" class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+    <div class="drawer-header">
+      <div>
+        <div class="drawer-kicker" id="drawerEyebrow">تفاصيل البرنامج والسعر</div>
+        <h3 id="drawerTitle" class="drawer-title">تفاصيل العرض</h3>
+      </div>
+      <button type="button" id="drawerCloseBtn" class="drawer-close" aria-label="إغلاق">إغلاق</button>
+    </div>
+    <div id="drawerBody" class="drawer-body"></div>
+  </aside>
+
+  <script src="./prices.js"></script>
+</body>
+</html>

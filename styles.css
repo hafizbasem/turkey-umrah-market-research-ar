@@ -976,3 +976,22 @@ tr.clickable-row:hover {
 .ext-link:hover {
   text-decoration: underline;
 }
+
+/* Cross-page link pill to prices.html */
+.tab-btn.tab-link-page {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.tab-btn.tab-prices-cta {
+  background: #f5edd9;
+  color: #0b4a32;
+  border-bottom: 3px solid #b8860b;
+  font-weight: 800;
+}
+
+.tab-btn.tab-prices-cta:hover {
+  background: #ecdcb5;
+  color: #093d29;
+}
