@@ -1304,7 +1304,6 @@
 
     const roomInt = E.room_integer_effect || [];
     const tvc = E.train_vs_car;
-    const nov9 = E.nov9_private_quad;
 
     sec.innerHTML = `
       <div class="section-head">
@@ -1399,7 +1398,7 @@
 
       <div class="grid-2" style="margin-top:16px">
         <div class="card">
-          <h3>أثر العدد الصحيح للغرف ceil(N/4) والميزانية العملية للرباعي (7 ليالٍ)</h3>
+          <h3>أثر العدد الصحيح للغرف ceil(N/4) وقفزة التكلفة الفردية</h3>
           <p>إضافة معتمر واحد يكسر مضاعف الـ 4 (من 12 ← 13 أو 16 ← 17) يفرض غرفة إضافية كاملة ويرفع تكلفة السرير الفندقية من <strong>$125.67</strong> إلى <strong>$154.67</strong> (+23% فجائيًا)!</p>
           <div class="table-wrap">
             <table>
@@ -1417,7 +1416,7 @@
             </table>
           </div>
           <div class="callout callout-info" style="margin-top:10px">
-            <strong>نموذج تكلفة رباعي مرجعي (7 ليالٍ: ${esc(nov9.nights)}):</strong> طيران ${fmtUsdOrTry(nov9.flight_pp, 2)} + سكن ${fmtUsdOrTry(nov9.hotel_pp, 2)} + إطعام ${fmtUsdOrTry(nov9.meal_pp, 2)} + أرضي ${fmtUsdOrTry(nov9.ground_pp, 2)} + تأشيرة/تأمين/هدايا ${fmtUsdOrTry(nov9.visa_ins_guide_gift_risk)} = <strong>${fmtUsdOrTry(nov9.total_cost_before_extras, 2)}</strong> مقابل سعر بيع مستهدف <strong>${fmtUsdOrTry(nov9.target_sale)}</strong>.
+            <strong>معادلة الإشغال القياسية:</strong> تعتمد الدراسة على افتراض ميزانية غرفة رباعية <span class="num">1,885 SAR</span> مقسومة عبر دالة السقف <span class="num">ceil(N / 4)</span>؛ لذا يمثّل إغلاق المجموعات عند مضاعفات الـ 4 فارق حماية رئيسيًا في الهامش.
           </div>
         </div>
 
@@ -1524,7 +1523,7 @@
     document.getElementById("tax-sar-slider").addEventListener("input", (e) => { state.simTaxBaseSar = Number(e.target.value); renderTab("economics"); });
   }
 
-  // ==================== TAB 6: MARKETING, CRM FUNNEL & CANCELLATION THRESHOLD ====================
+  // ==================== TAB 6: DIGITAL MARKETING SENSITIVITY, IG ADS & CANCELLATION THRESHOLD ====================
 
   function renderDistributionTab() {
     const D = state.data.distribution;
@@ -1536,25 +1535,30 @@
     const roasLive = state.simMetaSpend > 0 ? estRev / state.simMetaSpend : 0;
     const ct = D.cancellation_threshold;
 
-    const crmSvg = buildHBarSvg([
-      ...D.crm_funnel_aggregate.breakdown.map((b) => ({
-        label: b.segment,
-        val: b.count,
-        valLabel: `${fmtInt(b.count)} (${b.pct}%)`,
-        highlight: b.segment.includes("العمرة")
-      })),
+    const convSvg = buildHBarSvg([
       {
-        label: "في حالة انتظار رد العميل (الاختناق)",
-        val: D.crm_funnel_aggregate.awaiting_reply_count,
-        valLabel: `${fmtInt(D.crm_funnel_aggregate.awaiting_reply_count)} (${D.crm_funnel_aggregate.awaiting_reply_pct}%)`,
-        color: "#9e2a2b"
+        label: `سيناريو متحفظ (3% من ${fmtInt(state.simMetaChats)} محادثة)`,
+        val: Math.round(state.simMetaChats * 0.03),
+        valLabel: `${fmtInt(state.simMetaChats * 0.03)} حجزًا`,
+        color: "#5a6a64"
+      },
+      {
+        label: `سيناريو متوسط (6% من ${fmtInt(state.simMetaChats)} محادثة)`,
+        val: Math.round(state.simMetaChats * 0.06),
+        valLabel: `${fmtInt(state.simMetaChats * 0.06)} حجزًا`
+      },
+      {
+        label: `سيناريو متفائل (9% من ${fmtInt(state.simMetaChats)} محادثة)`,
+        val: Math.round(state.simMetaChats * 0.09),
+        valLabel: `${fmtInt(state.simMetaChats * 0.09)} حجزًا`,
+        highlight: true
       }
-    ], { aria: "قمع استفسارات CRM (839 سجلًا مجمّعًا دون بيانات شخصية)" });
+    ], { aria: "حساسية تحويل المحادثات الرقمية إلى حجوزات مؤكدة" });
 
     sec.innerHTML = `
       <div class="section-head">
-        <h2>التسويق الرقمي (Meta/IG)، مخاطر الإلغاء، واختناق مبيعات CRM (839)</h2>
-        <p class="section-sub">نموذج حساسية الإنفاق الإعلاني وتكلفة الاستحواذ CAC، مسح الحملات الثماني، قمع 839 استفسارًا مجمّعًا دون أي بيانات شخصية، وعتبة الإلغاء 11.11%</p>
+        <h2>التسويق الرقمي (Meta/IG)، الحملات العامة في السوق، ومخاطر الإلغاء</h2>
+        <p class="section-sub">نموذج حساسية الإنفاق الإعلاني وتكلفة الاستحواذ CAC، مسح الحملات العامة الثماني، الجالية الأوروبية، وعتبة الإلغاء 11.11%</p>
       </div>
 
       <div class="callout callout-warn" style="margin-bottom:14px">${esc(D.meta_metrics.audit_warning)}</div>
@@ -1595,11 +1599,18 @@
         </div>
 
         <div class="card">
-          <h3>اختناق قمع CRM (839 استفسارًا مجمّعًا دون هوية شخصية)</h3>
-          <p>${esc(D.crm_funnel_aggregate.source_label)}</p>
-          <div class="svg-wrap">${crmSvg}</div>
-          <div class="callout callout-danger">${esc(D.crm_funnel_aggregate.insight)}</div>
-          <div class="callout callout-info">${esc(D.europe_diaspora_p39)}</div>
+          <h3>مصفوفة حساسية تحويل المحادثات وضوابط السوق الرقمي التركي</h3>
+          <p>متطلبات السوق المعلنة: <strong>${esc(D.meta_metrics.tax_surcharge)}</strong> | نطاق CPM بالليرة: <strong class="num">${esc(D.meta_metrics.cpm_tl)}</strong></p>
+          <div class="svg-wrap">${convSvg}</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th class="num">حجم المحادثات</th><th class="num">تحويل 3%</th><th class="num">تحويل 6%</th><th class="num">تحويل 9%</th></tr></thead>
+              <tbody>
+                ${D.meta_sensitivity_p47.chats_vs_bookings.map((r) => `<tr><td class="num"><strong>${fmtInt(r.chats)}</strong></td><td class="num">${r.r3}</td><td class="num">${r.r6}</td><td class="num"><strong>${r.r9}</strong></td></tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+          <div class="callout callout-info" style="margin-top:10px">${esc(D.europe_diaspora_p39)}</div>
         </div>
       </div>
 
@@ -1656,7 +1667,7 @@
       ["agencies", "الشركات والحيتان"],
       ["monthly", "إقبال وتمام رمضان وZair"],
       ["economics", "التكاليف والضرائب"],
-      ["distribution", "التسويق وCRM"],
+      ["distribution", "التسويق والإلغاء"],
       ["audit", "التنقية والجالية"]
     ];
 
