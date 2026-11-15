@@ -49,16 +49,68 @@
     "2027-04": "أبريل 2027 (نهاية شوال 1448): وفق تقويم العمرة السعودي 1448 هـ يتوقف إصدار التأشيرات في 9 مارس 2027 ويكون آخر دخول في 23 مارس وآخر خروج في 7 أبريل 2027؛ لذلك تسجل إقلاعات أبريل الجديدة صفرًا مقابل برامج تغادر في مارس وتعود في أبريل.",
   };
 
+  const DECISION_SCENARIOS = [
+    {
+      id: "cheap_walk",
+      label: "أرخص مشي للحرم",
+      apply: () => {
+        STATE.distance = "walking";
+        STATE.onlyNamedHotel = true;
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "plaza_5",
+      label: "5 نجوم — ساحة الحرم (250م)",
+      apply: () => {
+        STATE.distance = "walk_250";
+        STATE.stars = "5";
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "peak_ramadan",
+      label: "ذروة رمضان والعيد",
+      apply: () => {
+        STATE.month = "all";
+        STATE.preset = "custom";
+        STATE.dateFrom = "2027-02-08";
+        STATE.dateTo = "2027-03-10";
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "long_econ",
+      label: "طويلة اقتصادية (17–40 يومًا)",
+      apply: () => {
+        STATE.tier = "17-40";
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "social_full",
+      label: "عروض IG/FB كاملة (2+3+4)",
+      apply: () => {
+        STATE.onlyFullRooms = true;
+        STATE.sort = "quad_asc";
+      },
+    },
+  ];
+
   let DATA = null;
   let PACKAGES = [];
   let FILTERED = [];
   let AGENCIES_BY_NAME = new Map();
+  let BENCH_MEDIANS = new Map();
+  let MONTH_HEAT = new Map();
 
   const STATE = {
     currency: "USD",
     fxRate: 44.2,
     month: "all",
     preset: "all",
+    scenario: "none",
+    chartTier: "all",
     dateFrom: "2026-09-01",
     dateTo: "2027-04-08",
     tier: "all",
@@ -74,6 +126,7 @@
     lateShawwalView: "off",
     sort: "date_asc",
     shownLimit: PAGE_SIZE,
+    compareIds: [],
   };
 
   function esc(val) {
@@ -184,15 +237,104 @@
     });
   }
 
+  function buildMarketBenchmarks() {
+    BENCH_MEDIANS = new Map();
+    MONTH_HEAT = new Map();
+    const bySlice = new Map();
+    const byMonth = new Map();
+    PACKAGES.forEach((p) => {
+      if (typeof p.room_quad_usd !== "number") return;
+      const k = `${p.month_key}|${p.duration_band}`;
+      if (!bySlice.has(k)) bySlice.set(k, []);
+      bySlice.get(k).push(p.room_quad_usd);
+      if (!byMonth.has(p.month_key)) byMonth.set(p.month_key, []);
+      byMonth.get(p.month_key).push(p.room_quad_usd);
+    });
+    bySlice.forEach((arr, k) => BENCH_MEDIANS.set(k, median(arr)));
+
+    const monthMeds = MONTHS_ORDER.map((m) => ({
+      key: m.key,
+      med: median(byMonth.get(m.key) || []),
+    })).filter((x) => x.med !== null);
+    const maxMed = Math.max(2500, ...monthMeds.map((x) => x.med));
+    const minMed = Math.min(1100, ...monthMeds.map((x) => x.med));
+
+    MONTHS_ORDER.forEach((m) => {
+      const med = median(byMonth.get(m.key) || []);
+      if (med === null) {
+        MONTH_HEAT.set(m.key, { pct: 18, heatCls: "heat-closed", med: null });
+        return;
+      }
+      const pct = Math.max(18, Math.min(100, Math.round(((med - minMed * 0.85) / Math.max(1, maxMed - minMed * 0.85)) * 100)));
+      const heatCls = heatClassForMedian(med, false);
+      MONTH_HEAT.set(m.key, { pct, heatCls, med });
+    });
+  }
+
+  function heatClassForMedian(med, isClosed) {
+    if (isClosed || med === null) return "heat-closed";
+    if (med >= 2100) return "heat-peak";
+    if (med >= 1580) return "heat-mid";
+    return "heat-cool";
+  }
+
+  function getPkgValueLens(p) {
+    const perNightUsd = p.nights && typeof p.room_quad_usd === "number" ? Math.round(p.room_quad_usd / p.nights) : null;
+    const bench = BENCH_MEDIANS.get(`${p.month_key}|${p.duration_band}`);
+    let deltaPill = "";
+    if (bench && typeof p.room_quad_usd === "number") {
+      const pct = Math.round(((p.room_quad_usd - bench) / bench) * 100);
+      if (pct <= -7) {
+        deltaPill = `<span class="val-pill is-good">أقل من الوسيط بـ ${Math.abs(pct)}%</span>`;
+      } else if (pct >= 18) {
+        deltaPill = `<span class="val-pill is-prem">فئة عليا +${pct}%</span>`;
+      } else {
+        deltaPill = `<span class="val-pill is-mid">قريب من الوسيط</span>`;
+      }
+    }
+    return { perNightUsd, deltaPill };
+  }
+
+  function countActiveAdvancedFilters() {
+    let n = 0;
+    if (STATE.preset !== "all") n++;
+    if (STATE.tier !== "all") n++;
+    if (STATE.agency !== "all") n++;
+    if (STATE.hotelId !== "all") n++;
+    if (STATE.distance !== "all") n++;
+    if (STATE.stars !== "all") n++;
+    if (STATE.channel !== "all") n++;
+    if (STATE.budgetMax < 8000) n++;
+    if (STATE.onlyFullRooms) n++;
+    if (STATE.onlyNamedHotel) n++;
+    return n;
+  }
+
+  function updateFilterBadge() {
+    const cnt = countActiveAdvancedFilters();
+    const trig = document.getElementById("toggleAdvFiltersBtn");
+    const lbl = document.getElementById("advFilterBtnLabel");
+    const dockBadge = document.getElementById("dockFilterBadge");
+    if (lbl) lbl.textContent = cnt > 0 ? `فلاتر (${cnt})` : "فلاتر متقدمة";
+    if (trig) trig.classList.toggle("has-active", cnt > 0);
+    if (dockBadge) {
+      dockBadge.textContent = String(cnt);
+      dockBadge.classList.toggle("hidden", cnt === 0);
+    }
+  }
+
   function updateFxUi() {
     const fxBtn = document.getElementById("fxToggleBtn");
     const fxNote = document.getElementById("fxNoteText");
+    const mobPill = document.getElementById("mobFxPill");
     if (STATE.currency === "TRY") {
       fxBtn.textContent = "عرض بالليرة التركية (₺ TRY)";
       fxBtn.classList.add("active");
+      if (mobPill) mobPill.textContent = "₺ TRY ⇄";
     } else {
       fxBtn.textContent = "عرض بالدولار ($ USD)";
       fxBtn.classList.add("active");
+      if (mobPill) mobPill.textContent = "$ USD ⇄";
     }
     fxNote.textContent = `المصدر المرجعي: 1 دولار = ${STATE.fxRate.toFixed(2)} ليرة تركية (التحويل ينطبق على الأسعار المقارنة مع الاحتفاظ بالعملة الأصلية للإعلان).`;
   }
@@ -291,6 +433,62 @@
       });
       chBox.appendChild(b);
     });
+
+    // One-Tap Decision Scenarios
+    const scenBox = document.getElementById("decisionScenarios");
+    if (scenBox) {
+      DECISION_SCENARIOS.forEach((sc) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "scenario-chip" + (sc.id === STATE.scenario ? " active" : "");
+        b.dataset.scenario = sc.id;
+        b.textContent = sc.label;
+        b.addEventListener("click", () => {
+          const same = STATE.scenario === sc.id;
+          STATE.month = "all";
+          STATE.preset = "all";
+          STATE.dateFrom = "2026-09-01";
+          STATE.dateTo = "2027-04-08";
+          STATE.tier = "all";
+          STATE.agency = "all";
+          STATE.hotelSearch = "";
+          STATE.hotelId = "all";
+          STATE.distance = "all";
+          STATE.stars = "all";
+          STATE.channel = "all";
+          STATE.budgetMax = 8000;
+          STATE.onlyFullRooms = false;
+          STATE.onlyNamedHotel = false;
+          STATE.lateShawwalView = "off";
+          STATE.sort = "date_asc";
+          STATE.shownLimit = PAGE_SIZE;
+          STATE.scenario = same ? "none" : sc.id;
+          if (!same) sc.apply();
+          syncControlsFromState();
+          renderAll();
+        });
+        scenBox.appendChild(b);
+      });
+    }
+  }
+
+  function syncControlsFromState() {
+    document.getElementById("dateFromInput").value = STATE.dateFrom;
+    document.getElementById("dateToInput").value = STATE.dateTo;
+    document.getElementById("tierSelect").value = STATE.tier;
+    document.getElementById("agencySelect").value = STATE.agency;
+    document.getElementById("hotelSearchInput").value = STATE.hotelSearch;
+    document.getElementById("hotelSelect").value = STATE.hotelId;
+    document.getElementById("distanceSelect").value = STATE.distance;
+    document.getElementById("starsSelect").value = STATE.stars;
+    document.getElementById("budgetMaxInput").value = STATE.budgetMax;
+    document.getElementById("budgetMaxLabel").textContent = STATE.budgetMax >= 8000 ? "الكل (بلا سقف)" : fmtPrice(STATE.budgetMax);
+    document.getElementById("onlyFullRoomsCheck").checked = STATE.onlyFullRooms;
+    document.getElementById("onlyNamedHotelCheck").checked = STATE.onlyNamedHotel;
+    document.getElementById("sortSelect").value = STATE.sort;
+    document.querySelectorAll("[data-rail-sort]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.railSort === STATE.sort);
+    });
   }
 
   function wireControls() {
@@ -379,23 +577,99 @@
 
     document.getElementById("sortSelect").addEventListener("change", (e) => {
       STATE.sort = e.target.value;
+      document.querySelectorAll("[data-rail-sort]").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.railSort === STATE.sort);
+      });
       renderResultsOnly();
     });
 
     document.getElementById("resetFiltersBtn").addEventListener("click", resetAllFilters);
     document.getElementById("exportCsvBtn").addEventListener("click", exportCsv);
 
+    // Compact header info toggle + mobile FX pill
+    const siteHdr = document.getElementById("siteHeader");
+    const infoBtn = document.getElementById("heroInfoToggle");
+    if (infoBtn && siteHdr) {
+      infoBtn.addEventListener("click", () => {
+        const next = !siteHdr.classList.contains("meta-open");
+        siteHdr.classList.toggle("meta-open", next);
+        siteHdr.classList.toggle("fx-open", next);
+        infoBtn.setAttribute("aria-expanded", String(next));
+        infoBtn.textContent = next ? "إخفاء ▴" : "نبذة ▾";
+      });
+    }
+    const mobFxPill = document.getElementById("mobFxPill");
+    if (mobFxPill) {
+      mobFxPill.addEventListener("click", () => {
+        document.getElementById("fxToggleBtn").click();
+      });
+    }
+
+    // Advanced Filters Slide-Up Sheet (mobile)
+    const advWrap = document.getElementById("advancedFiltersWrap");
+    const advBackdrop = document.getElementById("advSheetBackdrop");
+    const advTrigger = document.getElementById("toggleAdvFiltersBtn");
+    const openAdvSheet = () => {
+      if (advWrap) advWrap.classList.add("sheet-open");
+      if (advBackdrop) advBackdrop.classList.add("open");
+      if (advTrigger) advTrigger.setAttribute("aria-expanded", "true");
+    };
+    const closeAdvSheet = () => {
+      if (advWrap) advWrap.classList.remove("sheet-open");
+      if (advBackdrop) advBackdrop.classList.remove("open");
+      if (advTrigger) advTrigger.setAttribute("aria-expanded", "false");
+    };
+    if (advTrigger) advTrigger.addEventListener("click", openAdvSheet);
+    document.getElementById("closeAdvFiltersBtn")?.addEventListener("click", closeAdvSheet);
+    document.getElementById("applyAdvFiltersBtn")?.addEventListener("click", () => {
+      closeAdvSheet();
+      document.getElementById("resultsSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    document.getElementById("resetAdvFiltersBtn")?.addEventListener("click", () => {
+      resetAllFilters();
+    });
+    if (advBackdrop) advBackdrop.addEventListener("click", closeAdvSheet);
+
+    // Sticky quick-sort rail inside results
+    document.querySelectorAll("[data-rail-sort]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        STATE.sort = btn.dataset.railSort;
+        document.getElementById("sortSelect").value = STATE.sort;
+        document.querySelectorAll("[data-rail-sort]").forEach((b) => {
+          b.classList.toggle("active", b.dataset.railSort === STATE.sort);
+        });
+        renderResultsOnly();
+      });
+    });
+
+    // Bottom Dock actions + Side-by-side Compare controls
+    document.getElementById("dockFilterBtn")?.addEventListener("click", openAdvSheet);
+    document.getElementById("dockCompareBtn")?.addEventListener("click", openCompareSheet);
+    document.getElementById("openCompareSheetBtn")?.addEventListener("click", openCompareSheet);
+    document.getElementById("clearCompareBtn")?.addEventListener("click", () => {
+      STATE.compareIds = [];
+      updateCompareTray();
+      renderResultsOnly();
+    });
+    document.getElementById("closeCompareSheetBtn")?.addEventListener("click", closeCompareSheet);
+    document.getElementById("compareBackdrop")?.addEventListener("click", closeCompareSheet);
+
     // Drawer listeners
     document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
     document.getElementById("drawerBackdrop").addEventListener("click", closeDrawer);
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeDrawer();
+      if (e.key === "Escape") {
+        closeDrawer();
+        closeAdvSheet();
+        closeCompareSheet();
+      }
     });
   }
 
   function resetAllFilters() {
     STATE.month = "all";
     STATE.preset = "all";
+    STATE.scenario = "none";
     STATE.dateFrom = "2026-09-01";
     STATE.dateTo = "2027-04-08";
     STATE.tier = "all";
@@ -412,26 +686,14 @@
     STATE.sort = "date_asc";
     STATE.shownLimit = PAGE_SIZE;
 
-    document.getElementById("dateFromInput").value = STATE.dateFrom;
-    document.getElementById("dateToInput").value = STATE.dateTo;
-    document.getElementById("tierSelect").value = "all";
-    document.getElementById("agencySelect").value = "all";
-    document.getElementById("hotelSearchInput").value = "";
-    document.getElementById("hotelSelect").value = "all";
-    document.getElementById("distanceSelect").value = "all";
-    document.getElementById("starsSelect").value = "all";
-    document.getElementById("budgetMaxInput").value = 8000;
-    document.getElementById("budgetMaxLabel").textContent = "الكل (بلا سقف)";
-    document.getElementById("onlyFullRoomsCheck").checked = false;
-    document.getElementById("onlyNamedHotelCheck").checked = false;
-    document.getElementById("sortSelect").value = "date_asc";
-
+    syncControlsFromState();
     renderAll();
   }
 
   function applyMonthSelection(mk, tierOpt) {
     STATE.month = mk;
     STATE.preset = mk === "all" ? "all" : "month_" + mk;
+    STATE.scenario = "none";
     STATE.lateShawwalView = "off";
     const rangeMap = {
       "2026-09": ["2026-09-01", "2026-09-30"],
@@ -561,14 +823,17 @@
       <button type="button" class="month-pill-btn ${STATE.month === "all" ? "active" : ""}" data-month="all">
         <span class="month-pill-title">كامل الموسم (8 أشهر)</span>
         <span class="month-pill-sub">${fmtInt(basePool.length)} عرض | ${allAg.size} شركة</span>
+        <span class="month-sparkbar"><span class="month-spark-fill heat-mid" style="width:72%;"></span></span>
       </button>`;
 
     MONTHS_ORDER.forEach((m) => {
       const info = byM[m.key] || { count: 0, ag: new Set() };
+      const h = MONTH_HEAT.get(m.key) || { pct: 18, heatCls: "heat-closed" };
       html += `
         <button type="button" class="month-pill-btn ${STATE.month === m.key ? "active" : ""}" data-month="${m.key}">
           <span class="month-pill-title">${m.title}</span>
           <span class="month-pill-sub">${info.count} عرض | ${info.ag.size} شركة</span>
+          <span class="month-sparkbar"><span class="month-spark-fill ${h.heatCls}" style="width:${h.pct}%;"></span></span>
         </button>`;
     });
 
@@ -579,13 +844,17 @@
       });
     });
 
-    // Update active preset & channel pill states
+    // Update active preset, scenario & channel pill states
     document.querySelectorAll("#seasonPresets .preset-chip").forEach((el) => {
       el.classList.toggle("active", el.dataset.preset === STATE.preset);
     });
     document.querySelectorAll("#channelPills .filter-pill").forEach((el) => {
       el.classList.toggle("active", el.dataset.channel === STATE.channel);
     });
+    document.querySelectorAll("#decisionScenarios .scenario-chip").forEach((el) => {
+      el.classList.toggle("active", el.dataset.scenario === STATE.scenario);
+    });
+    updateFilterBadge();
   }
 
   function renderKpis(rows) {
@@ -672,7 +941,11 @@
       <div class="hotel-spotlight-grid">
         <div class="spot-stat">
           <div class="spot-stat-label">أرخص – وسيط – أعلى (رباعي)</div>
-          <div class="spot-stat-val">${quads.length ? `${fmtPrice(Math.min(...quads))} – ${fmtPrice(median(quads))} – ${fmtPrice(Math.max(...quads))}` : "غير معلن"}</div>
+          <div class="spot-stat-val">${
+            quads.length
+              ? `<span dir="rtl" style="display:inline-flex;gap:5px;flex-wrap:wrap;align-items:center;"><span class="num" dir="ltr">${esc(fmtPrice(Math.min(...quads)))}</span><span>–</span><span class="num" dir="ltr">${esc(fmtPrice(median(quads)))}</span><span>–</span><span class="num" dir="ltr">${esc(fmtPrice(Math.max(...quads)))}</span></span>`
+              : "غير معلن"
+          }</div>
         </div>
         <div class="spot-stat">
           <div class="spot-stat-label">الوسيط (ثلاثي)</div>
@@ -716,7 +989,7 @@
         const vals = pool
           .filter((p) => p.month_key === m.key && p.duration_band === t.key && typeof p.room_quad_usd === "number")
           .map((p) => p.room_quad_usd);
-        return { idx, month: m.key, title: m.title.split(" ")[0], val: median(vals), count: vals.length };
+        return { idx, month: m.key, fullTitle: m.title, title: m.title.split(" ")[0], val: median(vals), count: vals.length };
       });
       return { ...t, pts };
     });
@@ -729,7 +1002,15 @@
 
     const maxV = Math.max(...allVals, 3000);
     const minV = Math.max(0, Math.floor(Math.min(...allVals) * 0.8));
-    const W = 560, H = 250, padL = 48, padR = 24, padT = 22, padB = 46;
+    const isCompact = window.innerWidth <= 640;
+    const W = isCompact ? 356 : 560;
+    const H = isCompact ? 232 : 254;
+    const padL = isCompact ? (STATE.currency === "TRY" ? 64 : 56) : (STATE.currency === "TRY" ? 68 : 58);
+    const padR = isCompact ? 18 : 26;
+    const padT = 18;
+    const padB = isCompact ? 40 : 44;
+    const tickFs = isCompact ? 13 : 11.5;
+    const xFs = isCompact ? 12.8 : 11.5;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
     const xPos = (i) => padL + (i / (MONTHS_ORDER.length - 1)) * plotW;
@@ -740,38 +1021,108 @@
       const val = Math.round(minV + ((maxV - minV) * g) / 4);
       const y = yPos(val);
       gridSvg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#e7e1d5" stroke-dasharray="3 3" />`;
-      gridSvg += `<text x="${padL - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#6b6457">${STATE.currency === "TRY" ? fmtInt(val * STATE.fxRate) : "$" + fmtInt(val)}</text>`;
+      gridSvg += `<text x="${padL - 7}" y="${y + 4}" direction="ltr" text-anchor="end" font-size="${tickFs}" fill="#6b6457">${STATE.currency === "TRY" ? fmtInt(val * STATE.fxRate) : "$" + fmtInt(val)}</text>`;
     }
 
     let xLabelsSvg = MONTHS_ORDER.map((m, i) => {
       const x = xPos(i);
       const active = STATE.month === m.key;
-      return `<text x="${x}" y="${H - 12}" text-anchor="middle" font-size="10.5" font-weight="${active ? "800" : "600"}" fill="${active ? "#0c4b33" : "#5c564a"}">${esc(m.title.split(" ")[0])}</text>`;
+      const lbl = m.title.split(" ")[0];
+      return `<text x="${x}" y="${H - 12}" text-anchor="middle" font-size="${xFs}" font-weight="${active ? "800" : "600"}" fill="${active ? "#0c4b33" : "#5c564a"}">${esc(lbl)}</text>`;
     }).join("");
 
     let linesSvg = "";
     seriesData.forEach((s) => {
+      const focused = STATE.chartTier === "all" || STATE.chartTier === s.key;
+      const op = focused ? "1" : "0.18";
+      const sw = STATE.chartTier === s.key ? "3.1" : "2.3";
       const valid = s.pts.filter((p) => p.val !== null);
       if (valid.length >= 2) {
         const d = valid.map((p, k) => `${k === 0 ? "M" : "L"}${xPos(p.idx).toFixed(1)},${yPos(p.val).toFixed(1)}`).join(" ");
-        linesSvg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linecap="round" />`;
+        linesSvg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${sw}" stroke-linecap="round" opacity="${op}" />`;
       }
       valid.forEach((p) => {
-        linesSvg += `<circle cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.val).toFixed(1)}" r="4.2" fill="${s.color}" stroke="#fff" stroke-width="1.4"><title>${esc(s.label)} — ${esc(p.title)}: ${esc(fmtPrice(p.val))} (${p.count} عرض)</title></circle>`;
+        linesSvg += `<circle cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.val).toFixed(1)}" r="${focused ? "4.2" : "3"}" fill="${s.color}" stroke="#fff" stroke-width="1.3" opacity="${op}"><title>${esc(s.label)} — ${esc(p.title)}: ${esc(fmtPrice(p.val))} (${p.count} عرض)</title></circle>`;
       });
     });
 
+    const defIdx = Math.max(0, MONTHS_ORDER.findIndex((m) => m.key === (STATE.month !== "all" ? STATE.month : "2027-03")));
+    const scrubX = xPos(defIdx).toFixed(1);
+
     const legendHtml = tiers
       .map(
-        (t) => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:0.76rem;font-weight:700;"><span style="width:12px;height:3px;background:${t.color};display:inline-block;border-radius:2px;"></span>${esc(t.label)}</span>`
+        (t) => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:700;opacity:${STATE.chartTier === "all" || STATE.chartTier === t.key ? "1" : "0.45"};"><span style="width:12px;height:3px;background:${t.color};display:inline-block;border-radius:2px;"></span>${esc(t.label)}</span>`
       )
       .join("");
 
+    const focusPillsHtml = [
+      { key: "all", label: "الكل" },
+      { key: "7-10", label: "7–10" },
+      { key: "11-16", label: "11–16" },
+      { key: "17-40", label: "17–40" },
+    ]
+      .map((f) => `<button type="button" class="tier-focus-btn ${STATE.chartTier === f.key ? "active" : ""}" data-chart-tier="${f.key}">${f.label}</button>`)
+      .join("");
+
     box.innerHTML = `
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px;">${legendHtml}</div>
-      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;" role="img" aria-label="تطور أسعار العمرة عبر الشهور الثلاثية">
-        ${gridSvg}${xLabelsSvg}${linesSvg}
+      <div class="chart-toolbar">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">${legendHtml}</div>
+        <div class="tier-focus-pills" role="group" aria-label="تمييز شريحة المدة">${focusPillsHtml}</div>
+      </div>
+      <div id="chartHudBar" class="chart-hud-bar"></div>
+      <svg id="chartScrubSvg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;touch-action:pan-y;" role="img" aria-label="تطور أسعار العمرة عبر الشهور الثلاثية">
+        ${gridSvg}${xLabelsSvg}
+        <line id="chartScrubLine" x1="${scrubX}" y1="${padT}" x2="${scrubX}" y2="${H - padB}" stroke="#c99738" stroke-width="1.4" stroke-dasharray="4 3" />
+        ${linesSvg}
       </svg>`;
+
+    const updateHud = (idx) => {
+      const m = MONTHS_ORDER[idx] || MONTHS_ORDER[0];
+      const hud = document.getElementById("chartHudBar");
+      const line = document.getElementById("chartScrubLine");
+      if (line) {
+        const nx = xPos(idx).toFixed(1);
+        line.setAttribute("x1", nx);
+        line.setAttribute("x2", nx);
+      }
+      if (!hud) return;
+      const vals = seriesData
+        .map((s) => {
+          const pt = s.pts[idx];
+          const vStr = pt && pt.val !== null ? fmtPrice(pt.val) : "—";
+          return `<span style="color:${s.color};">${esc(s.label)}: <span class="num" dir="ltr">${esc(vStr)}</span></span>`;
+        })
+        .join(" · ");
+      hud.innerHTML = `<strong>${esc(m.title)}</strong><div class="chart-hud-vals">${vals}</div>`;
+    };
+
+    updateHud(defIdx);
+
+    box.querySelectorAll("[data-chart-tier]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        STATE.chartTier = btn.dataset.chartTier;
+        renderMonthlyChart();
+      });
+    });
+
+    const svgEl = document.getElementById("chartScrubSvg");
+    if (svgEl) {
+      const scrubAtClientX = (clientX) => {
+        const rect = svgEl.getBoundingClientRect();
+        if (!rect.width) return;
+        const svgX = ((clientX - rect.left) / rect.width) * W;
+        const ratio = Math.max(0, Math.min(1, (svgX - padL) / Math.max(1, plotW)));
+        const idx = Math.round(ratio * (MONTHS_ORDER.length - 1));
+        updateHud(idx);
+      };
+      svgEl.addEventListener("mousemove", (e) => scrubAtClientX(e.clientX));
+      svgEl.addEventListener("touchstart", (e) => {
+        if (e.touches && e.touches[0]) scrubAtClientX(e.touches[0].clientX);
+      }, { passive: true });
+      svgEl.addEventListener("touchmove", (e) => {
+        if (e.touches && e.touches[0]) scrubAtClientX(e.touches[0].clientX);
+      }, { passive: true });
+    }
   }
 
   function renderHotelLadder(rows) {
@@ -910,47 +1261,78 @@
 
   function renderCoverageMatrix() {
     const box = document.getElementById("coverageMatrixBox");
-    const tiers = ["7-10", "11-16", "17-40"];
-    const rowsHtml = MONTHS_ORDER.map((m) => {
-      const cells = tiers
-        .map((t) => {
-          const subset = PACKAGES.filter((p) => p.month_key === m.key && p.duration_band === t);
-          const agAll = new Set(subset.map((p) => p.agency).filter(Boolean));
-          const walkAg = new Set(subset.filter((p) => p.makkah_access_type === "walking").map((p) => p.agency).filter(Boolean));
-          const medQ = median(subset.map((p) => p.room_quad_usd));
-          const active = STATE.month === m.key && STATE.tier === t;
-          const isAprilCutoff = m.key === "2027-04" && subset.length === 0;
-          const mainCell = isAprilCutoff ? "إغلاق 1448" : (medQ !== null ? esc(fmtPrice(medQ)) : "—");
-          const subCell = isAprilCutoff
-            ? "0 إقلاع جديد · عودة مارس–أبريل"
-            : `${agAll.size} شركة (${walkAg.size} مشي) · ${subset.length} عرض`;
-          return `
-            <td class="matrix-cell" data-m="${m.key}" data-t="${t}" style="${active ? "background:#e3f3ec;outline:2px solid var(--emerald);" : ""}">
-              <span class="matrix-cell-main">${mainCell}</span>
-              <span class="matrix-cell-sub">${subCell}</span>
-            </td>`;
-        })
-        .join("");
-      return `<tr>
+    const tiers = [
+      { key: "7-10", short: "7–10 ي" },
+      { key: "11-16", short: "11–16 ي" },
+      { key: "17-40", short: "17–40 ي" },
+    ];
+
+    const deskRows = [];
+    const mobCards = [];
+
+    MONTHS_ORDER.forEach((m) => {
+      const deskCells = [];
+      const mobTiles = [];
+
+      tiers.forEach((t) => {
+        const subset = PACKAGES.filter((p) => p.month_key === m.key && p.duration_band === t.key);
+        const agAll = new Set(subset.map((p) => p.agency).filter(Boolean));
+        const walkAg = new Set(subset.filter((p) => p.makkah_access_type === "walking").map((p) => p.agency).filter(Boolean));
+        const medQ = median(subset.map((p) => p.room_quad_usd));
+        const active = STATE.month === m.key && STATE.tier === t.key;
+        const isAprilCutoff = m.key === "2027-04" && subset.length === 0;
+        const heatCls = heatClassForMedian(medQ, isAprilCutoff);
+        const mainCell = isAprilCutoff ? "إغلاق 1448" : (medQ !== null ? esc(fmtPrice(medQ)) : "—");
+        const subCell = isAprilCutoff
+          ? "0 إقلاع جديد · عودة مارس–أبريل"
+          : `${agAll.size} شركة (${walkAg.size} مشي) · ${subset.length} عرض`;
+
+        deskCells.push(`
+          <td class="matrix-cell ${heatCls}" data-m="${m.key}" data-t="${t.key}" style="${active ? "outline:2px solid var(--emerald);" : ""}">
+            <span class="matrix-cell-main">${mainCell}</span>
+            <span class="matrix-cell-sub">${subCell}</span>
+          </td>`);
+
+        mobTiles.push(`
+          <button type="button" class="matrix-mobile-tile ${heatCls} ${active ? "active" : ""}" data-m="${m.key}" data-t="${t.key}">
+            <span class="matrix-tile-band">${t.short}</span>
+            <span class="matrix-tile-price">${mainCell}</span>
+            <span class="matrix-tile-meta">${isAprilCutoff ? "0 إقلاع" : `${agAll.size} شركة`}</span>
+          </button>`);
+      });
+
+      deskRows.push(`<tr>
         <td><strong>${esc(m.title)}</strong><div class="matrix-cell-sub">${esc(m.sub)}</div></td>
-        ${cells}
-      </tr>`;
-    }).join("");
+        ${deskCells.join("")}
+      </tr>`);
+
+      mobCards.push(`
+        <article class="matrix-month-card">
+          <div class="matrix-month-head">
+            <span class="matrix-month-title">${esc(m.title)}</span>
+            <span class="matrix-month-sub">${esc(m.sub)}</span>
+          </div>
+          <div class="matrix-tier-tiles">${mobTiles.join("")}</div>
+        </article>`);
+    });
 
     box.innerHTML = `
-      <table class="data-table matrix-table">
-        <thead>
-          <tr>
-            <th>الشهر / المحطة الموسمية</th>
-            <th style="text-align:center;">7–10 أيام (برامج قصيرة)</th>
-            <th style="text-align:center;">11–16 يومًا (برامج متوسطة)</th>
-            <th style="text-align:center;">17–40 يومًا (برامج طويلة)</th>
-          </tr>
-        </thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>`;
+      <div class="matrix-desktop-table">
+        <table class="data-table matrix-table">
+          <thead>
+            <tr>
+              <th>الشهر / المحطة الموسمية</th>
+              <th style="text-align:center;">7–10 أيام (برامج قصيرة)</th>
+              <th style="text-align:center;">11–16 يومًا (برامج متوسطة)</th>
+              <th style="text-align:center;">17–40 يومًا (برامج طويلة)</th>
+            </tr>
+          </thead>
+          <tbody>${deskRows.join("")}</tbody>
+        </table>
+      </div>
+      <div class="matrix-mobile-cards">${mobCards.join("")}</div>`;
 
-    box.querySelectorAll(".matrix-cell").forEach((cell) => {
+    box.querySelectorAll(".matrix-cell, .matrix-mobile-tile").forEach((cell) => {
       cell.addEventListener("click", () => {
         applyMonthSelection(cell.dataset.m, cell.dataset.t);
         document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1009,7 +1391,7 @@
             <th class="num">4 أشخاص</th>
             <th class="num">3 أشخاص</th>
             <th class="num">2 شخص</th>
-            <th>المصدر والرابط</th>
+            <th>المصدر والمقارنة</th>
           </tr>
         </thead>
         <tbody>
@@ -1029,6 +1411,9 @@
                 p.original_currency && p.original_currency !== "USD" && p.original_prices && p.original_prices.quad
                   ? `<div class="matrix-cell-sub">(${fmtInt(p.original_prices.quad)} ${esc(p.original_currency)})</div>`
                   : "";
+              const lens = getPkgValueLens(p);
+              const perNightDesk = lens.perNightUsd ? `<div class="matrix-cell-sub">${esc(fmtPrice(lens.perNightUsd))} / ليلة</div>` : "";
+              const isPinned = STATE.compareIds.includes(p.id);
               const safeUrl = p.source_url && /^https?:\/\//i.test(p.source_url) ? p.source_url : "";
               const linkHtml = safeUrl
                 ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link" onclick="event.stopPropagation();">فتح المصدر</a>`
@@ -1056,12 +1441,19 @@
                     </div>
                   </td>
                   <td>${esc(p.madinah_hotel_ar || "غير محدد بالإعلان")}</td>
-                  <td class="num"><strong>${esc(fmtPrice(p.room_quad_usd))}</strong>${origNote}</td>
+                  <td class="num">
+                    <strong>${esc(fmtPrice(p.room_quad_usd))}</strong>
+                    ${origNote}${perNightDesk}
+                    ${lens.deltaPill ? `<div style="margin-top:3px;">${lens.deltaPill}</div>` : ""}
+                  </td>
                   <td class="num">${esc(fmtPrice(p.room_triple_usd))}</td>
                   <td class="num">${esc(fmtPrice(p.room_double_usd))}</td>
                   <td>
                     <div>${channelBadge(p.source_channel)}</div>
-                    <div style="margin-top:4px;display:flex;gap:8px;align-items:center;">${linkHtml}</div>
+                    <div style="margin-top:5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                      ${linkHtml}
+                      <button type="button" class="compare-pin-btn ${isPinned ? "active" : ""}" data-compare-id="${esc(p.id)}">${isPinned ? "في المقارنة" : "+ قارن"}</button>
+                    </div>
                   </td>
                 </tr>`;
             })
@@ -1075,6 +1467,12 @@
           p.makkah_access_type === "walking"
             ? `<span class="badge-walk">مشي ${esc(fmtDist(p.makkah_distance_m, "walking"))}</span>`
             : `<span class="badge-shuttle">شتل ${esc(fmtDist(p.makkah_distance_m, "shuttle"))}</span>`;
+        const lens = getPkgValueLens(p);
+        const isPinned = STATE.compareIds.includes(p.id);
+        const origSub =
+          p.original_currency && p.original_currency !== "USD" && p.original_prices && p.original_prices.quad
+            ? `<div class="price-box-sub">(${fmtInt(p.original_prices.quad)} ${esc(p.original_currency)})</div>`
+            : "";
         const safeUrl = p.source_url && /^https?:\/\//i.test(p.source_url) ? p.source_url : "";
         return `
           <article class="pkg-card" data-id="${esc(p.id)}">
@@ -1086,17 +1484,22 @@
               ${channelBadge(p.source_channel)}
             </div>
             <div>
-              <div style="font-weight:700;font-size:0.86rem;color:var(--ink);">مكة: ${esc(p.makkah_hotel_ar)}</div>
+              <div class="pkg-hotel-title">مكة: ${esc(p.makkah_hotel_ar)}</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
                 <span class="badge-stars">${esc(p.makkah_stars_ar)}</span>
                 ${accessBadge}
               </div>
               <div class="matrix-cell-sub" style="margin-top:4px;">المدينة: ${esc(p.madinah_hotel_ar || "غير محدد بالإعلان")}</div>
             </div>
+            <div class="pkg-lens-row">
+              ${lens.perNightUsd ? `<span class="val-pill is-mid">${esc(fmtPrice(lens.perNightUsd))} / ليلة</span>` : ""}
+              ${lens.deltaPill}
+            </div>
             <div class="pkg-card-prices">
               <div>
                 <div class="price-box-lbl">4 أشخاص</div>
                 <div class="price-box-val ${p.room_quad_usd === null ? "na" : ""}">${esc(fmtPrice(p.room_quad_usd))}</div>
+                ${origSub}
               </div>
               <div>
                 <div class="price-box-lbl">3 أشخاص</div>
@@ -1107,9 +1510,10 @@
                 <div class="price-box-val ${p.room_double_usd === null ? "na" : ""}">${esc(fmtPrice(p.room_double_usd))}</div>
               </div>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;">
-              <span style="color:var(--emerald);font-weight:700;">عرض التفاصيل كاملة</span>
-              ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link" onclick="event.stopPropagation();">رابط الإعلان الموثق</a>` : ""}
+            <div class="pkg-card-footer">
+              <button type="button" class="pkg-detail-btn">التفاصيل</button>
+              <button type="button" class="compare-pin-btn ${isPinned ? "active" : ""}" data-compare-id="${esc(p.id)}">${isPinned ? "في المقارنة" : "+ قارن"}</button>
+              ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link" onclick="event.stopPropagation();">رابط المصدر ↗</a>` : `<span class="matrix-cell-sub">—</span>`}
             </div>
           </article>`;
       })
@@ -1120,6 +1524,12 @@
     });
     mobWrap.querySelectorAll(".pkg-card").forEach((card) => {
       card.addEventListener("click", () => openPackageDrawer(card.dataset.id));
+    });
+    document.querySelectorAll("[data-compare-id]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleCompareId(btn.dataset.compareId);
+      });
     });
 
     // Pagination
@@ -1134,6 +1544,101 @@
     } else {
       pagBox.innerHTML = "";
     }
+  }
+
+  function toggleCompareId(pkgId) {
+    const idx = STATE.compareIds.indexOf(pkgId);
+    if (idx >= 0) {
+      STATE.compareIds.splice(idx, 1);
+    } else {
+      if (STATE.compareIds.length >= 3) STATE.compareIds.shift();
+      STATE.compareIds.push(pkgId);
+    }
+    updateCompareTray();
+    renderResultsOnly();
+    const drawerBtn = document.querySelector("#drawerStickyCta [data-drawer-compare]");
+    if (drawerBtn && drawerBtn.dataset.drawerCompare === pkgId) {
+      const active = STATE.compareIds.includes(pkgId);
+      drawerBtn.classList.toggle("active", active);
+      drawerBtn.textContent = active ? "في المقارنة" : "+ أضف للمقارنة";
+    }
+    if (document.getElementById("compareSheet")?.classList.contains("open")) {
+      renderCompareSheetBody();
+    }
+  }
+
+  function updateCompareTray() {
+    const bar = document.getElementById("compareTrayBar");
+    const lbl = document.getElementById("compareTrayLabel");
+    const badge = document.getElementById("dockCompareBadge");
+    const cnt = STATE.compareIds.length;
+    if (lbl) lbl.textContent = `مقارنة العروض (${cnt}/3)`;
+    if (bar) bar.classList.toggle("hidden", cnt === 0);
+    if (badge) {
+      badge.textContent = String(cnt);
+      badge.classList.toggle("hidden", cnt === 0);
+    }
+  }
+
+  function renderCompareSheetBody() {
+    const body = document.getElementById("compareSheetBody");
+    if (!body) return;
+    const items = STATE.compareIds.map((id) => PACKAGES.find((x) => x.id === id)).filter(Boolean);
+    if (!items.length) {
+      body.innerHTML = `<div class="footnote" style="padding:14px;">اختر حتى 3 برامج بالضغط على زر <strong>+ قارن</strong> من بطاقات النتائج لمقارنة سعر الليلة، القرب من الحرم، والغرف الثنائية والثلاثية والرباعية جنبًا إلى جنب.</div>`;
+      return;
+    }
+    const validQuads = items.map((p) => p.room_quad_usd).filter((v) => typeof v === "number");
+    const bestQuad = validQuads.length ? Math.min(...validQuads) : null;
+
+    body.innerHTML = `
+      <div class="compare-grid">
+        ${items
+          .map((p) => {
+            const lens = getPkgValueLens(p);
+            const isBest = bestQuad !== null && p.room_quad_usd === bestQuad && items.length > 1;
+            const safeUrl = p.source_url && /^https?:\/\//i.test(p.source_url) && !/vertexaisearch|drive\.google\.com/i.test(p.source_url) ? p.source_url : "";
+            return `
+              <div class="compare-col ${isBest ? "compare-col-best" : ""}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                  <div>
+                    <strong style="font-size:0.9rem;color:var(--emerald);">${esc(p.agency)}</strong>
+                    ${isBest ? `<span class="val-pill is-good" style="margin-inline-start:6px;">الأقل رباعيًا</span>` : ""}
+                  </div>
+                  <button type="button" class="compare-pin-btn active" data-remove-compare="${esc(p.id)}">إزالة</button>
+                </div>
+                <div style="font-size:0.84rem;font-weight:700;margin-top:6px;">${esc(p.makkah_hotel_ar)} (${esc(p.makkah_stars_ar)})</div>
+                <div class="matrix-cell-sub">${esc(fmtDist(p.makkah_distance_m, p.makkah_access_type))} · ${p.makkah_access_type === "walking" ? "مشي للحرم" : "شتل"}</div>
+                <div class="matrix-cell-sub">المدينة: ${esc(p.madinah_hotel_ar || "غير محدد بالإعلان")}</div>
+                <div class="matrix-cell-sub">التاريخ: ${esc(p.dep_date || p.month_key)} · ${p.days ? p.days + " يومًا" : esc(tierLabel(p.duration_band))}</div>
+                <div class="pkg-card-prices" style="margin-top:8px;">
+                  <div><div class="price-box-lbl">رباعي</div><div class="price-box-val">${esc(fmtPrice(p.room_quad_usd))}</div></div>
+                  <div><div class="price-box-lbl">ثلاثي</div><div class="price-box-val">${esc(fmtPrice(p.room_triple_usd))}</div></div>
+                  <div><div class="price-box-lbl">ثنائي</div><div class="price-box-val">${esc(fmtPrice(p.room_double_usd))}</div></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                  <span>${lens.perNightUsd ? `<strong>${esc(fmtPrice(lens.perNightUsd))}</strong> / ليلة` : ""} ${lens.deltaPill}</span>
+                  ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link">فتح المصدر ↗</a>` : ""}
+                </div>
+              </div>`;
+          })
+          .join("")}
+      </div>`;
+
+    body.querySelectorAll("[data-remove-compare]").forEach((btn) => {
+      btn.addEventListener("click", () => toggleCompareId(btn.dataset.removeCompare));
+    });
+  }
+
+  function openCompareSheet() {
+    renderCompareSheetBody();
+    document.getElementById("compareBackdrop")?.classList.add("open");
+    document.getElementById("compareSheet")?.classList.add("open");
+  }
+
+  function closeCompareSheet() {
+    document.getElementById("compareBackdrop")?.classList.remove("open");
+    document.getElementById("compareSheet")?.classList.remove("open");
   }
 
   function openPackageDrawer(pkgId) {
@@ -1158,6 +1663,11 @@
         ? `<p class="footnote" style="margin-top:8px;">السعر الأصلي بالإعلان (${esc(p.original_currency)}): رباعي ${fmtInt(p.original_prices.quad)} | ثلاثي ${fmtInt(p.original_prices.triple)} | ثنائي ${fmtInt(p.original_prices.double)}</p>`
         : "";
 
+    const rawDist = typeof p.makkah_distance_m === "number" ? p.makkah_distance_m : p.makkah_access_type === "walking" ? 500 : 2500;
+    const pinRightPct = Math.max(4, Math.min(96, Math.round((rawDist / 3000) * 100)));
+    const lens = getPkgValueLens(p);
+    const isPinned = STATE.compareIds.includes(p.id);
+
     document.getElementById("drawerBody").innerHTML = `
       <div class="drawer-section">
         <h4>بيانات الرحلة والتوقيت</h4>
@@ -1171,6 +1681,21 @@
 
       <div class="drawer-section">
         <h4>السكن في مكة المكرمة والمدينة المنورة</h4>
+        <div class="haram-gauge">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;font-weight:700;margin-bottom:6px;">
+            <span>مقياس القرب من المسجد الحرام</span>
+            <strong>${esc(fmtDist(p.makkah_distance_m, p.makkah_access_type))} (${p.makkah_access_type === "walking" ? "مشي للحرم" : "نقل ترددي شتل"})</strong>
+          </div>
+          <div class="haram-gauge-track">
+            <span class="haram-gauge-pin" style="right:${pinRightPct}%;"></span>
+          </div>
+          <div class="haram-gauge-ticks" dir="rtl">
+            <span>0م الحرم</span>
+            <span>500م مشي</span>
+            <span>1 كم</span>
+            <span>+3 كم شتل</span>
+          </div>
+        </div>
         <div class="kv-grid">
           <div class="kv-item"><span>فندق مكة المعتمد</span><strong>${esc(p.makkah_hotel_ar)}<br><small style="color:var(--muted);">${esc(p.makkah_hotel_en_tr || p.makkah_hotel_raw)}</small></strong></div>
           <div class="kv-item"><span>تصنيف مكة والمسافة للحرم</span><strong>${esc(p.makkah_stars_ar)} — ${esc(fmtDist(p.makkah_distance_m, p.makkah_access_type))} (${p.makkah_access_type === "walking" ? "مشي للحرم" : "شتل"})</strong></div>
@@ -1180,7 +1705,11 @@
       </div>
 
       <div class="drawer-section">
-        <h4>تسعير الغرف للفرد</h4>
+        <h4>تسعير الغرف للفرد ومؤشر القيمة</h4>
+        <div class="pkg-lens-row" style="margin-bottom:8px;">
+          ${lens.perNightUsd ? `<span class="val-pill is-mid">${esc(fmtPrice(lens.perNightUsd))} / ليلة</span>` : ""}
+          ${lens.deltaPill}
+        </div>
         <div class="pkg-card-prices" style="padding:12px;">
           <div>
             <div class="price-box-lbl">غرفة رباعية (4)</div>
@@ -1208,6 +1737,15 @@
         ${agLinks.length ? `<div class="agency-links-row">${agLinks.join("")}</div>` : ""}
       </div>
     `;
+
+    const stickyCta = document.getElementById("drawerStickyCta");
+    if (stickyCta) {
+      stickyCta.innerHTML = `
+        <button type="button" class="compare-pin-btn ${isPinned ? "active" : ""}" data-drawer-compare="${esc(p.id)}" style="flex:0 0 auto;padding:8px 14px;">${isPinned ? "في المقارنة" : "+ أضف للمقارنة"}</button>
+        ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary-outline" style="flex:1;text-align:center;">فتح المصدر الموثق ↗</a>` : ""}
+      `;
+      stickyCta.querySelector("[data-drawer-compare]")?.addEventListener("click", () => toggleCompareId(p.id));
+    }
 
     document.getElementById("drawerBackdrop").classList.add("open");
     document.getElementById("detailDrawer").classList.add("open");
@@ -1262,6 +1800,10 @@
     renderHotelLadder(rows);
     renderCoverageMatrix();
     renderResultsOnly();
+    updateCompareTray();
+    if (document.getElementById("compareSheet")?.classList.contains("open")) {
+      renderCompareSheetBody();
+    }
   }
 
   async function boot() {
@@ -1282,9 +1824,11 @@
       const metaAg = DATA.meta && DATA.meta.distinct_agencies ? DATA.meta.distinct_agencies : new Set(PACKAGES.map((p) => p.agency)).size;
       hdrMeta.textContent = `رصد ${fmtInt(PACKAGES.length)} عرضًا موثقًا | ${fmtInt(metaAg)} شركة تركية | سبتمبر 2026 – شوال 1448`;
 
+      buildMarketBenchmarks();
       populateSelectors();
       wireControls();
       renderAll();
+      updateCompareTray();
     } catch (err) {
       const errBox = document.getElementById("loadError");
       errBox.style.display = "block";

@@ -18,6 +18,8 @@
     offersQuery: "",
     offersSort: "id",
     showAllPrograms: false,
+    showAllDir: false,
+    monthlyFocusSubtab: "all",
     briefGroupFilter: "all",
     sim12: { makkahNight: 85, madinahNight: 95, fixedCost: 840, occ: 4, bank: "none", inst: 1 },
     simBusPax: 32,
@@ -111,7 +113,7 @@
     return `<div class="hbar-list" aria-label="${esc(opts.aria || "مخطط بياني")}">${rows}</div>`;
   }
 
-  // SVG Whisker Chart for Monthly H1 2026
+  // SVG Whisker Chart for Monthly H1 2026 + Mobile Barbell Morph
   function buildMonthlyWhiskerSvg(months) {
     const W = 760, H = 300;
     const padL = 56, padR = 24, padT = 28, padB = 50;
@@ -140,7 +142,7 @@
           <rect x="${cx - 32}" y="${yOf(460)}" width="64" height="${yOf(0) - yOf(460)}" rx="6" fill="#fbeaea" stroke="#9e2a2b" />
           <text x="${cx}" y="${yOf(230)}" text-anchor="middle" font-size="11.5" font-weight="800" fill="#9e2a2b">إغلاق (0$)</text>
           <text x="${cx}" y="${H - 20}" text-anchor="middle" font-size="13" font-weight="700" fill="#9e2a2b">${esc(m.short)}</text>
-          <text x="${cx}" y="${H - 5}" text-anchor="middle" font-size="10.5" fill="#9e2a2b">(0 عروض)</text>
+          <text x="${cx}" y="${H - 5}" text-anchor="middle" font-size="11" fill="#9e2a2b">(0 عروض)</text>
         </g>`;
         return;
       }
@@ -148,7 +150,7 @@
       const yMax = yOf(m.atlas_max);
       const yMin = yOf(m.atlas_min);
       const yMed = yOf(m.atlas_median);
-      const medBadgeW = 48;
+      const medBadgeW = 50;
       cols += `<g class="svg-bar-interactive" data-select-month="${esc(m.key)}">
         ${bgHighlight}
         <line x1="${cx}" y1="${yMax}" x2="${cx}" y2="${yMin}" stroke="#0d5c46" stroke-width="4" stroke-linecap="round" />
@@ -156,20 +158,64 @@
         <rect x="${cx - 12}" y="${yMin - 2}" width="24" height="4" rx="2" fill="#0d5c46" />
         <circle cx="${cx}" cy="${yMed}" r="7" fill="#c99738" stroke="#ffffff" stroke-width="2" />
         <text x="${cx}" y="${yMax - 8}" text-anchor="middle" font-size="11" font-weight="700" fill="#2d3e38">$${fmtInt(m.atlas_max)}</text>
-        <text x="${cx}" y="${yMin + 14}" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5a6a64">$${fmtInt(m.atlas_min)}</text>
+        <text x="${cx}" y="${yMin + 14}" text-anchor="middle" font-size="11" font-weight="600" fill="#5a6a64">$${fmtInt(m.atlas_min)}</text>
         <rect x="${cx + 9}" y="${yMed - 9}" width="${medBadgeW}" height="18" rx="4" fill="#0f2c23" />
-        <text x="${cx + 9 + medBadgeW / 2}" y="${yMed + 4}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#f5deb0">$${fmtInt(m.atlas_median)}</text>
+        <text x="${cx + 9 + medBadgeW / 2}" y="${yMed + 4}" text-anchor="middle" font-size="11" font-weight="800" fill="#f5deb0">$${fmtInt(m.atlas_median)}</text>
         <text x="${cx}" y="${H - 20}" text-anchor="middle" font-size="13" font-weight="${isSelected ? "800" : "600"}" fill="#0f2c23">${esc(m.short)}</text>
-        <text x="${cx}" y="${H - 5}" text-anchor="middle" font-size="10.5" fill="#5a6a64">(${m.sample_n} عرضًا)</text>
+        <text x="${cx}" y="${H - 5}" text-anchor="middle" font-size="11" fill="#5a6a64">(${m.sample_n} عرضًا)</text>
       </g>`;
     });
 
-    return `<svg class="chart-svg" style="direction:ltr" viewBox="0 0 ${W} ${H}" role="img" aria-label="تطور أسعار العمرة في النصف الأول 2026">${grid}${cols}</svg>`;
+    const minAxis = 900, maxAxis = 2900;
+    const toPct = (v) => Math.max(2, Math.min(98, Math.round(((v - minAxis) / (maxAxis - minAxis)) * 100)));
+    const barbellRows = months.map((m) => {
+      const isSelected = state.selectedMonth === m.key;
+      if (m.key === "may") {
+        return `
+          <div class="h1-barbell-row ${isSelected ? "active" : ""}" data-select-month="may" style="border-color:#e9b7b7;background:#fef6f6;">
+            <div class="h1-barbell-top">
+              <span class="h1-barbell-month" style="color:#9e2a2b;">${esc(m.short)} (الحج 1447)</span>
+              <span class="h1-barbell-med" style="background:#fbeaea;color:#9e2a2b;">إغلاق (0$)</span>
+            </div>
+            <div class="h1-barbell-bounds"><span>0 عروض معتمدة — تعليق تأشيرات العمرة لموسم الحج</span></div>
+          </div>`;
+      }
+      const leftP = toPct(m.atlas_min);
+      const rightP = toPct(m.atlas_max);
+      const medP = toPct(m.atlas_median);
+      return `
+        <div class="h1-barbell-row ${isSelected ? "active" : ""}" data-select-month="${esc(m.key)}">
+          <div class="h1-barbell-top">
+            <span class="h1-barbell-month">${esc(m.short)} (${m.sample_n} عرضًا)</span>
+            <span class="h1-barbell-med">الوسيط: ${fmtUsdOrTry(m.atlas_median)}</span>
+          </div>
+          <div class="h1-barbell-track">
+            <span class="h1-barbell-span" style="left:${leftP}%;width:${Math.max(4, rightP - leftP)}%;"></span>
+            <span class="h1-barbell-pin" style="left:${medP}%;" title="الوسيط ${fmtUsdOrTry(m.atlas_median)}"></span>
+          </div>
+          <div class="h1-barbell-bounds" style="direction:ltr;">
+            <span dir="rtl">الأدنى: <strong class="num" dir="ltr">${fmtUsdOrTry(m.atlas_min)}</strong></span>
+            <span dir="rtl">الأعلى: <strong class="num" dir="ltr">${fmtUsdOrTry(m.atlas_max)}</strong></span>
+          </div>
+        </div>`;
+    }).join("");
+
+    return `
+      <div class="h1-desktop-svg">
+        <svg class="chart-svg" style="direction:ltr" viewBox="0 0 ${W} ${H}" role="img" aria-label="تطور أسعار العمرة في النصف الأول 2026">${grid}${cols}</svg>
+      </div>
+      <div class="h1-barbell-list">${barbellRows}</div>`;
   }
 
   // SVG Chart: Break-even Lines (18.75 Pure vs 32 Adjusted for POS & Risk)
   function buildBreakEvenSvg(selectedPax) {
-    const W = 740, H = 250, padL = 62, padR = 24, padT = 22, padB = 38;
+    const isCompact = window.innerWidth <= 640;
+    const W = isCompact ? 344 : 740;
+    const H = isCompact ? 228 : 256;
+    const padL = isCompact ? 56 : 64;
+    const padR = isCompact ? 34 : 38;
+    const padT = 26, padB = 38;
+    const fs = isCompact ? 12 : 13;
     const plotW = W - padL - padR, plotH = H - padT - padB;
     const minP = 10, maxP = 45;
     const minNet = -6000, maxNet = 12000;
@@ -189,30 +235,67 @@
     const curPure = selectedPax * 400 - 7500;
     const curAdj = selectedPax * 400 - 12800;
 
+    const pureCapW = isCompact ? 82 : 136;
+    const adjCapW = isCompact ? 102 : 162;
+    const pureCapX = Math.max(padL + 2, xOf(18.75) - pureCapW - 6);
+    const adjCapX = Math.min(W - padR - adjCapW, xOf(32) + 6);
+    const pureLbl = isCompact ? "بحت: 18.75" : "تشغيل بحت: 18.75 (19)";
+    const adjLbl = isCompact ? "فعلي: 32 (71%)" : "التعادل الحقيقي: 32 (71%)";
+
     return `<svg class="chart-svg" style="direction:ltr" viewBox="0 0 ${W} ${H}" role="img" aria-label="نقطة التعادل 18.75 مقابل 32 معتمرًا">
       <line x1="${padL}" y1="${yZero}" x2="${W - padR}" y2="${yZero}" stroke="#0f2c23" stroke-width="1.5" stroke-dasharray="4,3" />
-      <text x="${padL - 8}" y="${yZero + 4}" text-anchor="end" font-size="11.5" font-weight="700" fill="#0f2c23">$0 (تعادل)</text>
-      <text x="${padL - 8}" y="${yOf(10000) + 4}" text-anchor="end" font-size="11" fill="#0d5c46">+$10,000</text>
-      <text x="${padL - 8}" y="${yOf(-5000) + 4}" text-anchor="end" font-size="11" fill="#9e2a2b">-$5,000</text>
+      <text x="${padL - 6}" y="${yZero + 4}" text-anchor="end" font-size="${fs}" font-weight="700" fill="#0f2c23">$0</text>
+      <text x="${padL - 6}" y="${yOf(10000) + 4}" text-anchor="end" font-size="${fs}" fill="#0d5c46">+$10k</text>
+      <text x="${padL - 6}" y="${yOf(-5000) + 4}" text-anchor="end" font-size="${fs}" fill="#9e2a2b">-$5k</text>
 
-      <polyline fill="none" stroke="#0d5c46" stroke-width="3" points="${purePts.join(" ")}" />
-      <polyline fill="none" stroke="#9e2a2b" stroke-width="3" stroke-dasharray="6,4" points="${adjPts.join(" ")}" />
+      <polyline fill="none" stroke="#0d5c46" stroke-width="2.8" points="${purePts.join(" ")}" />
+      <polyline fill="none" stroke="#9e2a2b" stroke-width="2.8" stroke-dasharray="6,4" points="${adjPts.join(" ")}" />
 
-      <circle cx="${xOf(18.75)}" cy="${yZero}" r="6" fill="#0d5c46" stroke="#fff" stroke-width="2" />
-      <text x="${xOf(18.75)}" y="${yZero - 12}" text-anchor="middle" font-size="11.5" font-weight="800" fill="#0d5c46">تشغيل بحت: 18.75 (19)</text>
+      <circle cx="${xOf(18.75)}" cy="${yZero}" r="5.5" fill="#0d5c46" stroke="#fff" stroke-width="2" />
+      <rect x="${pureCapX}" y="${yZero - 28}" width="${pureCapW}" height="20" rx="5" fill="#e7f6ee" stroke="#0d5c46" stroke-width="1" />
+      <text x="${pureCapX + pureCapW / 2}" y="${yZero - 14}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="#0d5c46">${pureLbl}</text>
 
-      <circle cx="${xOf(32)}" cy="${yZero}" r="6" fill="#9e2a2b" stroke="#fff" stroke-width="2" />
-      <text x="${xOf(32)}" y="${yZero + 18}" text-anchor="middle" font-size="11.5" font-weight="800" fill="#9e2a2b">بعد POS والمخاطر: 32 (71.1%)</text>
+      <circle cx="${xOf(32)}" cy="${yZero}" r="5.5" fill="#9e2a2b" stroke="#fff" stroke-width="2" />
+      <rect x="${adjCapX}" y="${yZero + 9}" width="${adjCapW}" height="20" rx="5" fill="#fbeaea" stroke="#9e2a2b" stroke-width="1" />
+      <text x="${adjCapX + adjCapW / 2}" y="${yZero + 23}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="#9e2a2b">${adjLbl}</text>
 
       <line x1="${curX}" y1="${padT}" x2="${curX}" y2="${H - padB}" stroke="#c99738" stroke-width="2" />
       <circle cx="${curX}" cy="${yOf(curPure)}" r="5" fill="#c99738" />
       <circle cx="${curX}" cy="${yOf(curAdj)}" r="5" fill="#c99738" />
 
-      <text x="${xOf(15)}" y="${H - 12}" text-anchor="middle" font-size="11.5" fill="#5a6a64">15 مقعدًا</text>
-      <text x="${xOf(25)}" y="${H - 12}" text-anchor="middle" font-size="11.5" fill="#5a6a64">25 مقعدًا</text>
-      <text x="${xOf(32)}" y="${H - 12}" text-anchor="middle" font-size="11.5" fill="#5a6a64">32 مقعدًا</text>
-      <text x="${xOf(45)}" y="${H - 12}" text-anchor="middle" font-size="11.5" fill="#5a6a64">45 (100%)</text>
+      <text x="${xOf(15)}" y="${H - 12}" text-anchor="middle" font-size="${fs}" fill="#5a6a64">15</text>
+      <text x="${xOf(25)}" y="${H - 12}" text-anchor="middle" font-size="${fs}" fill="#5a6a64">25</text>
+      <text x="${xOf(32)}" y="${H - 12}" text-anchor="middle" font-size="${fs}" fill="#5a6a64">32</text>
+      <text x="${W - 4}" y="${H - 12}" text-anchor="end" font-size="${fs}" fill="#5a6a64">45 (100%)</text>
     </svg>`;
+  }
+
+  function buildCoachSeatMapHtml(selectedPax) {
+    let seats = "";
+    for (let s = 1; s <= 45; s++) {
+      let cls = "is-empty";
+      if (s === 19) cls = "is-be-pure";
+      else if (s === 32) cls = "is-be-adj";
+      else if (s <= selectedPax) {
+        cls = s < 19 ? "is-loss" : s < 32 ? "is-warn" : "is-profit";
+      }
+      seats += `<button type="button" class="coach-seat ${cls}" data-seat="${s}" title="مقعد ${s} من 45">${s}</button>`;
+    }
+    return `
+      <div class="coach-map-wrap">
+        <div class="coach-map-head">
+          <span>خريطة إشغال حافلة 45 مقعدًا (اضغط أي مقعد لاختبار التعادل)</span>
+          <span class="num">${selectedPax} / 45 مقعدًا</span>
+        </div>
+        <div class="coach-grid">${seats}</div>
+        <div class="coach-legend">
+          <span class="coach-leg-item"><span class="coach-dot" style="background:#fbeaea;border:1px solid #e9b7b7;"></span>خسارة (1–18)</span>
+          <span class="coach-leg-item"><span class="coach-dot" style="background:#e4f3ed;border:2px solid #0d5c46;"></span>تعادل بحت (19)</span>
+          <span class="coach-leg-item"><span class="coach-dot" style="background:#fdf3e2;border:1px solid #e6c68a;"></span>منطقة حرجة (20–31)</span>
+          <span class="coach-leg-item"><span class="coach-dot" style="background:#c99738;"></span>تعادل حقيقي (32)</span>
+          <span class="coach-leg-item"><span class="coach-dot" style="background:#0d5c46;"></span>ربح صافي (33–45)</span>
+        </div>
+      </div>`;
   }
 
   // ==================== TAB 1: MACRO & LIVE MARKET PULSE ====================
@@ -330,7 +413,7 @@
               <input id="scen-slider" type="range" min="10" max="30" step="0.1" value="${share}" />
             </div>
           </div>
-          <div class="sim-results-grid" style="grid-template-columns: repeat(3, 1fr)">
+          <div class="sim-results-grid sim-results-grid--3">
             <div class="sim-box"><div class="sb-lbl">ديانت المباشر (مؤكد)</div><div class="sb-val num">${fmtInt(diyH1)}</div></div>
             <div class="sim-box"><div class="sb-lbl">حصة الوكالات الخاصة (تقديري)</div><div class="sb-val num" style="color:var(--emerald)">${fmtInt(estPrivateH1)}</div></div>
             <div class="sim-box"><div class="sb-lbl">الإجمالي الضمني في H1</div><div class="sb-val num">${fmtInt(estTotalH1)}</div></div>
@@ -430,21 +513,26 @@
             <div class="sim-box"><div class="sb-lbl">خارجي Q1 2026 (-11.56%)</div><div class="sb-val num">${fmtInt(D.gastat_global.q1_foreign)}</div></div>
           </div>
           <p style="margin-top:10px">توزيع الوافدين من الخارج في Q1 2026 (كل الجنسيات): <strong>${D.gastat_global.entry_air_pct}% جوي</strong> | <strong>${D.gastat_global.entry_land_pct}% بري</strong> | <strong>${D.gastat_global.entry_sea_pct}% بحري</strong> — والجنس: <strong>${D.gastat_global.gender_female_pct}% إناث</strong> مقابل <strong>${D.gastat_global.gender_male_pct}% ذكور</strong>.</p>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>الشهر (2026)</th><th class="num">خارجي عالمي</th><th class="num">المتوسط اليومي</th><th>الدلالة</th></tr></thead>
-              <tbody>
-                ${D.gastat_global.months.map((m) => `
-                  <tr>
-                    <td><strong>${esc(m.month)}</strong></td>
-                    <td class="num">${fmtInt(m.external)}</td>
-                    <td class="num">${esc(m.daily_avg)}</td>
-                    <td>${esc(m.note)}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
+          <details class="mob-spoiler">
+            <summary>تفصيل الوافدين عالميًا في شهور Q1 2026 (GASTAT)<span class="mob-spoiler-badge">${D.gastat_global.months.length} أشهر</span></summary>
+            <div class="mob-spoiler-body">
+              <div class="table-wrap" style="margin-top:0">
+                <table>
+                  <thead><tr><th>الشهر (2026)</th><th class="num">خارجي عالمي</th><th class="num">المتوسط اليومي</th><th>الدلالة</th></tr></thead>
+                  <tbody>
+                    ${D.gastat_global.months.map((m) => `
+                      <tr>
+                        <td><strong>${esc(m.month)}</strong></td>
+                        <td class="num">${fmtInt(m.external)}</td>
+                        <td class="num">${esc(m.daily_avg)}</td>
+                        <td>${esc(m.note)}</td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="card">
@@ -460,7 +548,7 @@
     sec.querySelectorAll("[data-scen-pct]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.scenarioPct = Number(btn.dataset.scenPct);
-        renderMacroTab();
+        renderTab("macro");
       });
     });
     const slider = document.getElementById("scen-slider");
@@ -600,17 +688,32 @@
         </div>
 
         <div class="card">
-          <h3>مصفوفة فجوة بيانات الناقلات العاملة من تركيا</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>الناقل</th><th>البيانات المتاحة</th><th>ما يغيب عن الإفصاح العام</th></tr></thead>
-              <tbody>
-                ${A.carrier_gap_matrix.map((c) => `
-                  <tr><td><strong>${esc(c.carrier)}</strong></td><td>${esc(c.available)}</td><td style="color:var(--crimson)">${esc(c.missing)}</td></tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
+          <details class="mob-spoiler">
+            <summary>مصفوفة فجوة بيانات الناقلات والمطارات الإقليمية (${A.airports_11.length})<span class="mob-spoiler-badge">جداول مرجعية</span></summary>
+            <div class="mob-spoiler-body">
+              <div class="table-wrap" style="margin-top:0">
+                <table>
+                  <thead><tr><th>الناقل</th><th>البيانات المتاحة</th><th>ما يغيب عن الإفصاح العام</th></tr></thead>
+                  <tbody>
+                    ${A.carrier_gap_matrix.map((c) => `
+                      <tr><td><strong>${esc(c.carrier)}</strong></td><td>${esc(c.available)}</td><td style="color:var(--crimson)">${esc(c.missing)}</td></tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+              <h3 style="margin-top:14px">بوابات المغادرة والمطارات الإقليمية الـ 11</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>المنطقة</th><th>الرموز</th><th>الكثافة</th><th>الدور بالسوق</th></tr></thead>
+                  <tbody>
+                    ${A.airports_11.map((ap) => `
+                      <tr><td><strong>${esc(ap.region)}</strong></td><td class="num">${esc(ap.codes)}</td><td>${esc(ap.share_note)}</td><td>${esc(ap.role)}</td></tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
 
           <h3 style="margin-top:16px">${esc(sc.title)}</h3>
           <p>أرقام موثقة من تنظيم ديانت ومفتي ولاية سامسون — تكشف أهمية المحافظات وحدود قراءة إعلانات المطارات:</p>
@@ -621,18 +724,6 @@
             <div class="sim-box"><div class="sb-lbl">نسبة العطلة من الموسم</div><div class="sb-val num">${sc.holiday_share_pct}%</div></div>
           </div>
           <div class="callout callout-warn" style="margin-top:8px">${esc(sc.caveat)}</div>
-
-          <h3 style="margin-top:16px">بوابات المغادرة والمطارات الإقليمية الـ 11</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>المنطقة</th><th>الرموز</th><th>الكثافة</th><th>الدور بالسوق</th></tr></thead>
-              <tbody>
-                ${A.airports_11.map((ap) => `
-                  <tr><td><strong>${esc(ap.region)}</strong></td><td class="num">${esc(ap.codes)}</td><td>${esc(ap.share_note)}</td><td>${esc(ap.role)}</td></tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
     `;
@@ -640,7 +731,7 @@
     sec.querySelectorAll("[data-thy-view]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.thyView = btn.dataset.thyView;
-        renderAviationTab();
+        renderTab("aviation");
       });
     });
   }
@@ -760,7 +851,7 @@
       <div class="card" style="margin-top:18px">
         <h3>دليل الوكالات المستكمل (${dirAll.length} وكالة — السعر الأدنى المؤكد، المدينة، والرابط الرسمي)</h3>
         <p>تم استكمال كافة الفجوات السعرية والمواقع الرسمية (مثل Semerşah، Toprak، İsra، RK، Mebrur، Emvaj، Fazilet، Anadolu Umre، Mabed) دون تضمين أي أرقام هواتف شخصية.</p>
-        <div class="control-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))">
+        <div class="control-grid control-grid--auto">
           <div class="ctrl-field">
             <label for="dir-tier">تصنيف الوكالة</label>
             <select id="dir-tier">
@@ -786,8 +877,8 @@
           <table>
             <thead><tr><th>الوكالة</th><th>الفئة</th><th>المدينة / النطاق</th><th class="num">أدنى سعر بداية</th><th>المؤشر السعري والتشغيلي الموثق</th><th>الروابط الرسمية</th></tr></thead>
             <tbody>
-              ${dirFiltered.map((a) => `
-                <tr>
+              ${dirFiltered.map((a, idx) => `
+                <tr${idx >= 12 && !state.dirQuery.trim() && !state.showAllDir ? ' class="mob-row-hidden"' : ""}>
                   <td><strong>${esc(a.name)}</strong></td>
                   <td><span class="src-tag">${esc(a.tier)}</span></td>
                   <td>${esc(a.city)}</td>
@@ -803,6 +894,7 @@
             </tbody>
           </table>
         </div>
+        ${dirFiltered.length > 12 && !state.dirQuery.trim() ? `<div class="mob-only-inline" style="margin-top:10px;"><button type="button" id="toggle-dir-all" class="filter-pill ${state.showAllDir ? "active" : ""}">${state.showAllDir ? "تقليص لأول 12 وكالة" : `عرض باقي الوكالات (${dirFiltered.length - 12})`}</button></div>` : ""}
       </div>
 
       <div class="card" style="margin-top:18px">
@@ -851,6 +943,13 @@
     document.getElementById("dir-tier").addEventListener("change", (e) => { state.dirTierFilter = e.target.value; renderTab("agencies"); });
     document.getElementById("dir-sort").addEventListener("change", (e) => { state.dirSort = e.target.value; renderTab("agencies"); });
     document.getElementById("dir-q").addEventListener("input", (e) => { state.dirQuery = e.target.value; renderTab("agencies"); });
+    const dirAllBtn = document.getElementById("toggle-dir-all");
+    if (dirAllBtn) {
+      dirAllBtn.addEventListener("click", () => {
+        state.showAllDir = !state.showAllDir;
+        renderTab("agencies");
+      });
+    }
 
     sec.querySelectorAll("[data-whale-idx]").forEach((el) => {
       el.addEventListener("click", () => {
@@ -868,14 +967,14 @@
     sec.querySelectorAll("[data-share-view]").forEach((b) => {
       b.addEventListener("click", () => {
         state.agencyShareView = b.dataset.shareView;
-        renderAgenciesTab();
+        renderTab("agencies");
       });
     });
 
     sec.querySelectorAll("[data-city-filter]").forEach((b) => {
       b.addEventListener("click", () => {
         state.emergingCityFilter = b.dataset.cityFilter;
-        renderAgenciesTab();
+        renderTab("agencies");
       });
     });
   }
@@ -941,14 +1040,15 @@
       </div>
 
       <div class="subtab-bar">
-        <button type="button" class="subtab-btn" data-jump="#sec-h1">موسمية H1 والمخطط</button>
-        <button type="button" class="subtab-btn" data-jump="#sec-ikbal">إقبال توريزم (13+15+5)</button>
-        <button type="button" class="subtab-btn" data-jump="#sec-tam">تمام رمضان وديانت SAR/USD</button>
-        <button type="button" class="subtab-btn" data-jump="#sec-zair">التشغيل الفردي Zair DIY (98)</button>
-        <button type="button" class="subtab-btn" data-jump="#sec-unified">سجل الـ ${PROGS.length} برنامجًا الموّحد</button>
+        <button type="button" class="subtab-btn ${state.monthlyFocusSubtab === "all" ? "active" : ""}" data-focus="all" data-jump="#sec-h1">كل الأقسام</button>
+        <button type="button" class="subtab-btn ${state.monthlyFocusSubtab === "h1" ? "active" : ""}" data-focus="h1" data-jump="#sec-h1">موسمية H1 والمخطط</button>
+        <button type="button" class="subtab-btn ${state.monthlyFocusSubtab === "ikbal" ? "active" : ""}" data-focus="ikbal" data-jump="#sec-ikbal">إقبال توريزم (13+15+5)</button>
+        <button type="button" class="subtab-btn ${state.monthlyFocusSubtab === "tam" ? "active" : ""}" data-focus="tam" data-jump="#sec-tam">تمام رمضان وديانت SAR/USD</button>
+        <button type="button" class="subtab-btn ${state.monthlyFocusSubtab === "zair" ? "active" : ""}" data-focus="zair" data-jump="#sec-zair">التشغيل الفردي Zair DIY (98)</button>
+        <button type="button" class="subtab-btn ${state.monthlyFocusSubtab === "unified" ? "active" : ""}" data-focus="unified" data-jump="#sec-unified">سجل الـ ${PROGS.length} برنامجًا الموّحد</button>
       </div>
 
-      <div id="sec-h1" class="card">
+      <div id="sec-h1" class="card ${state.monthlyFocusSubtab !== "all" && state.monthlyFocusSubtab !== "h1" ? "mobile-chapter-collapsed" : ""}">
         <h3>المخطط التفاعلي للمدى والوسيط السعري للغرفة الرباعية H1 2026 ($ USD)</h3>
         <div class="svg-wrap">${whiskerSvg}</div>
         <div class="pill-row">
@@ -971,7 +1071,7 @@
         </div>
       </div>
 
-      <div class="grid-2" style="margin-top:16px">
+      <div class="grid-2 ${state.monthlyFocusSubtab !== "all" && state.monthlyFocusSubtab !== "h1" ? "mobile-chapter-collapsed" : ""}" style="margin-top:16px">
         <div class="card">
           <h3>التوزيع الفعلي للأسعار الرباعية عبر 54 سجلًا مكتملًا</h3>
           <p>تتركز <strong>70.4%</strong> من السوق (38 من 54 عرضًا) بين <strong>$1,200 و$1,599</strong> مع وسيط كلي <strong>${dualMoney(1450)}</strong>.</p>
@@ -984,7 +1084,7 @@
         </div>
       </div>
 
-      <div id="sec-ikbal" class="card" style="margin-top:16px">
+      <div id="sec-ikbal" class="card ${state.monthlyFocusSubtab !== "all" && state.monthlyFocusSubtab !== "ikbal" ? "mobile-chapter-collapsed" : ""}" style="margin-top:16px">
         <div class="kpi-top">
           <h3 style="margin:0">تحليل حالة إقبال للسياحة (İkbal Turizm — رخصة ${esc(IKB.belge_no)})</h3>
           <span class="src-tag">تحديث المقاعد: ${esc(IKB.seats_updated_at)}</span>
@@ -1014,50 +1114,55 @@
           </table>
         </div>
 
-        <div class="grid-2" style="margin-top:14px">
-          <div>
-            <h3>2) الانطلاقات الإقليمية الشتوية الموثقة (5 مطارات)</h3>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>المطار</th><th>البرنامج</th><th class="num">أيام</th><th class="num">رباعي</th><th class="num">متبقٍ</th><th>الرابط</th></tr></thead>
-                <tbody>
-                  ${IKB.official_winter_highlights.map((h) => `
-                    <tr>
-                      <td><strong>${esc(h.hub)}</strong></td>
-                      <td>${esc(h.title_ar)}<br><small>${esc(h.note)}</small></td>
-                      <td class="num">${h.days}</td>
-                      <td class="num"><strong>${fmtUsdOrTry(h.quad_usd)}</strong></td>
-                      <td class="num">${fmtInt(h.remaining)}</td>
-                      <td><a class="ext-link" href="${esc(h.url)}" target="_blank" rel="noopener noreferrer">فتح ↗</a></td>
-                    </tr>
-                  `).join("")}
-                </tbody>
-              </table>
+        <details class="mob-spoiler">
+          <summary>الانطلاقات الإقليمية (5 مطارات) ورصد شتاء إقبال (${IKB.winter_ud_preview.length} جولة)<span class="mob-spoiler-badge">مرجع إقبال</span></summary>
+          <div class="mob-spoiler-body">
+            <div class="grid-2" style="margin-top:6px">
+              <div>
+                <h3>2) الانطلاقات الإقليمية الشتوية الموثقة (5 مطارات)</h3>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>المطار</th><th>البرنامج</th><th class="num">أيام</th><th class="num">رباعي</th><th class="num">متبقٍ</th><th>الرابط</th></tr></thead>
+                    <tbody>
+                      ${IKB.official_winter_highlights.map((h) => `
+                        <tr>
+                          <td><strong>${esc(h.hub)}</strong></td>
+                          <td>${esc(h.title_ar)}<br><small>${esc(h.note)}</small></td>
+                          <td class="num">${h.days}</td>
+                          <td class="num"><strong>${fmtUsdOrTry(h.quad_usd)}</strong></td>
+                          <td class="num">${fmtInt(h.remaining)}</td>
+                          <td><a class="ext-link" href="${esc(h.url)}" target="_blank" rel="noopener noreferrer">فتح ↗</a></td>
+                        </tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <h3>3) رصد شتاء إقبال على المنصة (${IKB.winter_ud_preview.length} جولة نوفمبر–ديسمبر 2026)</h3>
+                <div class="table-wrap" style="max-height:310px;overflow-y:auto">
+                  <table>
+                    <thead><tr><th>الانطلاق والمطار</th><th class="num">المدة</th><th>الناقل</th><th class="num">رباعي</th><th>الرابط</th></tr></thead>
+                    <tbody>
+                      ${IKB.winter_ud_preview.map((w) => `
+                        <tr>
+                          <td><strong>${esc(w.departure_ar)}</strong> (${esc(w.airport)})<br><small>${esc(w.nights_split)}</small></td>
+                          <td class="num">${w.days} يومًا</td>
+                          <td>${esc(w.airline)}</td>
+                          <td class="num"><strong>${fmtUsdOrTry(w.quad_usd)}</strong></td>
+                          <td><a class="ext-link" href="${esc(w.url)}" target="_blank" rel="noopener noreferrer">فتح ↗</a></td>
+                        </tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <h3>3) رصد شتاء إقبال على المنصة (${IKB.winter_ud_preview.length} جولة نوفمبر–ديسمبر 2026)</h3>
-            <div class="table-wrap" style="max-height:310px;overflow-y:auto">
-              <table>
-                <thead><tr><th>الانطلاق والمطار</th><th class="num">المدة</th><th>الناقل</th><th class="num">رباعي</th><th>الرابط</th></tr></thead>
-                <tbody>
-                  ${IKB.winter_ud_preview.map((w) => `
-                    <tr>
-                      <td><strong>${esc(w.departure_ar)}</strong> (${esc(w.airport)})<br><small>${esc(w.nights_split)}</small></td>
-                      <td class="num">${w.days} يومًا</td>
-                      <td>${esc(w.airline)}</td>
-                      <td class="num"><strong>${fmtUsdOrTry(w.quad_usd)}</strong></td>
-                      <td><a class="ext-link" href="${esc(w.url)}" target="_blank" rel="noopener noreferrer">فتح ↗</a></td>
-                    </tr>
-                  `).join("")}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        </details>
       </div>
 
-      <div id="sec-tam" class="card" style="margin-top:16px">
+      <div id="sec-tam" class="card ${state.monthlyFocusSubtab !== "all" && state.monthlyFocusSubtab !== "tam" ? "mobile-chapter-collapsed" : ""}" style="margin-top:16px">
         <h3>ملف تمام رمضان (30–38 يومًا): موسم 2027 المصنف مقابل أرشيف 2026 وتعرفة ديانت SAR/USD</h3>
         <div class="grid-2">
           <div>
@@ -1107,37 +1212,42 @@
           </div>
         </div>
 
-        <div class="grid-2" style="margin-top:14px">
-          <div>
-            <h3>تعرفة ديانت لرمضان وشوال 2026 (بالريال SAR — 14 كودًا)</h3>
-            <div class="table-wrap" style="max-height:260px;overflow-y:auto">
-              <table>
-                <thead><tr><th>الكود</th><th>الموسم والنقل</th><th class="num">أيام</th><th class="num">رباعي SAR</th><th class="num">~USD</th></tr></thead>
-                <tbody>
-                  ${TAM.diyanet_2026_sar.map((d) => `
-                    <tr><td class="num"><strong>${esc(d.code)}</strong></td><td>${esc(d.season)} (${esc(d.transport)})</td><td class="num">${d.days}</td><td class="num">${fmtInt(d.quad)} SAR</td><td class="num">~${fmtUsdOrTry(d.quad_usd_approx)}</td></tr>
-                  `).join("")}
-                </tbody>
-              </table>
+        <details class="mob-spoiler">
+          <summary>جداول تعرفات ديانت لرمضان وشوال 2026 (SAR) و2027 (USD)<span class="mob-spoiler-badge">30 كودًا</span></summary>
+          <div class="mob-spoiler-body">
+            <div class="grid-2" style="margin-top:6px">
+              <div>
+                <h3>تعرفة ديانت لرمضان وشوال 2026 (بالريال SAR — 14 كودًا)</h3>
+                <div class="table-wrap" style="max-height:260px;overflow-y:auto">
+                  <table>
+                    <thead><tr><th>الكود</th><th>الموسم والنقل</th><th class="num">أيام</th><th class="num">رباعي SAR</th><th class="num">~USD</th></tr></thead>
+                    <tbody>
+                      ${TAM.diyanet_2026_sar.map((d) => `
+                        <tr><td class="num"><strong>${esc(d.code)}</strong></td><td>${esc(d.season)} (${esc(d.transport)})</td><td class="num">${d.days}</td><td class="num">${fmtInt(d.quad)} SAR</td><td class="num">~${fmtUsdOrTry(d.quad_usd_approx)}</td></tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <h3>تعرفة ديانت لرمضان وشوال 2027 (بالدولار USD — 16 كودًا | زيادة +7% إلى +16%)</h3>
+                <div class="table-wrap" style="max-height:260px;overflow-y:auto">
+                  <table>
+                    <thead><tr><th>الكود</th><th>الموسم والنقل</th><th class="num">أيام</th><th class="num">رباعي USD</th><th class="num">ثنائي USD</th></tr></thead>
+                    <tbody>
+                      ${TAM.diyanet_2027_usd.map((d) => `
+                        <tr><td class="num"><strong>${esc(d.code)}</strong></td><td>${esc(d.season)} (${esc(d.transport)})</td><td class="num">${d.days}</td><td class="num"><strong>${fmtUsdOrTry(d.quad)}</strong></td><td class="num">${fmtUsdOrTry(d.double)}</td></tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <h3>تعرفة ديانت لرمضان وشوال 2027 (بالدولار USD — 16 كودًا | زيادة +7% إلى +16%)</h3>
-            <div class="table-wrap" style="max-height:260px;overflow-y:auto">
-              <table>
-                <thead><tr><th>الكود</th><th>الموسم والنقل</th><th class="num">أيام</th><th class="num">رباعي USD</th><th class="num">ثنائي USD</th></tr></thead>
-                <tbody>
-                  ${TAM.diyanet_2027_usd.map((d) => `
-                    <tr><td class="num"><strong>${esc(d.code)}</strong></td><td>${esc(d.season)} (${esc(d.transport)})</td><td class="num">${d.days}</td><td class="num"><strong>${fmtUsdOrTry(d.quad)}</strong></td><td class="num">${fmtUsdOrTry(d.double)}</td></tr>
-                  `).join("")}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        </details>
       </div>
 
-      <div id="sec-zair" class="card" style="margin-top:16px">
+      <div id="sec-zair" class="card ${state.monthlyFocusSubtab !== "all" && state.monthlyFocusSubtab !== "zair" ? "mobile-chapter-collapsed" : ""}" style="margin-top:16px">
         <h3>التسعير الفردي الديناميكي (Zair DIY — ${fmtInt(ZAIR.count)} باقة فردية)</h3>
         <p>${esc(ZAIR.note)} | <strong>النطاق:</strong> <span class="num">${fmtUsdOrTry(ZAIR.min_usd_pp, 2)} – ${fmtUsdOrTry(ZAIR.max_usd_pp, 2)}</span> (لقطة صرف ${ZAIR.fx_snapshot} ليرة)</p>
         <div class="table-wrap">
@@ -1159,10 +1269,10 @@
         </div>
       </div>
 
-      <div id="sec-unified" class="card" style="margin-top:16px">
+      <div id="sec-unified" class="card ${state.monthlyFocusSubtab !== "all" && state.monthlyFocusSubtab !== "unified" ? "mobile-chapter-collapsed" : ""}" style="margin-top:16px">
         <h3>فهرس الأسعار الموحّد للبرامج (${PROGS.length} سجلًا: H1 2026 + الشتاء + رمضان + شوال)</h3>
         <p>يعرض جميع الباقات حسب الموسم، المدة، مسافة الوصول، والناقل لقياس التسعير السوقي — دون عرض بطاقات فنادق.</p>
-        <div class="control-grid" style="grid-template-columns: repeat(auto-fit, minmax(165px, 1fr))">
+        <div class="control-grid control-grid--auto">
           <div class="ctrl-field">
             <label for="f-season">الموسم / المجموعة</label>
             <select id="f-season">
@@ -1227,17 +1337,21 @@
     document.getElementById("f-type").value = state.offersTypeFilter;
     document.getElementById("f-sort").value = state.offersSort;
 
-    sec.querySelectorAll("[data-jump]").forEach((btn) => {
+    sec.querySelectorAll("[data-focus]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const target = sec.querySelector(btn.dataset.jump);
-        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        state.monthlyFocusSubtab = btn.dataset.focus || "all";
+        renderTab("monthly");
+        if (window.innerWidth > 768 && btn.dataset.jump) {
+          const target = sec.querySelector(btn.dataset.jump);
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       });
     });
 
     sec.querySelectorAll("[data-select-month]").forEach((el) => {
       el.addEventListener("click", () => {
         state.selectedMonth = el.dataset.selectMonth;
-        renderMonthlyTab();
+        renderTab("monthly");
       });
     });
 
@@ -1367,17 +1481,18 @@
       <div class="grid-2" style="margin-top:16px">
         <div class="card">
           <h3>منحنى نقطة التعادل لحافلة 45 مقعدًا: 18.75 مقابل 32</h3>
-          <div class="control-grid" style="grid-template-columns:1fr">
+          <div class="control-grid control-grid--1">
             <div class="ctrl-field">
               <label>عدد الركاب الفعلي بالمجموعة: <strong class="num">${state.simBusPax}</strong> من 45 (<span class="num">${fmtDec((state.simBusPax / 45) * 100, 1)}%</span> امتلاء)</label>
-              <input id="bus-slider" type="range" min="10" max="45" step="1" value="${state.simBusPax}" />
+              <input id="bus-slider" type="range" min="1" max="45" step="1" value="${state.simBusPax}" />
             </div>
           </div>
           <div class="svg-wrap">${buildBreakEvenSvg(state.simBusPax)}</div>
-          <div class="sim-results-grid" style="grid-template-columns:1fr 1fr">
+          <div class="sim-results-grid sim-results-grid--2">
             <div class="sim-box"><div class="sb-lbl">التعادل التشغيلي البحت (ثابت $7,500)</div><div class="sb-val num" style="color:${busPureNet >= 0 ? "var(--emerald)" : "var(--crimson)"}">${fmtUsdOrTry(busPureNet)}</div></div>
             <div class="sim-box"><div class="sb-lbl">بعد مخصص +$5,300 POS ومخاطر</div><div class="sb-val num" style="color:${busAdjNet >= 0 ? "var(--emerald)" : "var(--crimson)"}">${fmtUsdOrTry(busAdjNet)}</div></div>
           </div>
+          ${buildCoachSeatMapHtml(state.simBusPax)}
         </div>
 
         <div class="card">
@@ -1459,13 +1574,13 @@
 
         <div class="card">
           <h3>شلال الضريبة السعودية التراكمي (+5% بلدية ← +15% VAT = 20.75%)</h3>
-          <div class="control-grid" style="grid-template-columns:1fr">
+          <div class="control-grid control-grid--1">
             <div class="ctrl-field">
               <label>اختبر سعر غرفة مكة الأساسي (SAR/ليلة): <strong class="num">${sarBase} SAR</strong></label>
               <input id="tax-sar-slider" type="range" min="70" max="1500" step="10" value="${sarBase}" />
             </div>
           </div>
-          <div class="sim-results-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="sim-results-grid sim-results-grid--3">
             <div class="sim-box"><div class="sb-lbl">+5% بلدية</div><div class="sb-val num">${fmtDec(sarWithMuni, 2)} SAR</div></div>
             <div class="sim-box"><div class="sb-lbl">+15% VAT إجمالي 1.2075×</div><div class="sb-val num">${fmtDec(sarTotal, 2)} SAR</div></div>
             <div class="sim-box"><div class="sb-lbl">تكلفة 9 ليالٍ/فرد (رباعي)</div><div class="sb-val num">${fmtUsdOrTry(taxQuad9nUsd, 2)}</div></div>
@@ -1484,27 +1599,37 @@
       <div class="grid-2" style="margin-top:16px">
         <div class="card">
           <h3>تعرفات ديانت (SAR 2025–2027) وتآكل الليرة التركية (+17%)</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>نشرة ديانت</th><th>المدد</th><th class="num">رباعي</th><th class="num">ثلاثي</th><th class="num">ثنائي</th></tr></thead>
-              <tbody>
-                ${E.diyanet_tariffs_table.map((d) => `<tr><td><strong>${esc(d.bulletin)}</strong></td><td>${esc(d.durations)}</td><td class="num">${esc(d.quad)}</td><td class="num">${esc(d.triple)}</td><td class="num">${esc(d.double)}</td></tr>`).join("")}
-              </tbody>
-            </table>
-          </div>
-          <p style="margin-top:10px">تآكل الصرف: باقة <strong class="num">$1,500</strong> ارتفعت محليًا من <strong class="num">64,821 TL</strong> في يناير (43.21) إلى <strong class="num">69,392 TL</strong> في يونيو (46.26) ثم <strong class="num">75,165 TL</strong> في نوفمبر (50.11) — بزيادة <strong class="num">+17%</strong>.</p>
+          <p>تآكل الصرف: باقة <strong class="num">$1,500</strong> ارتفعت محليًا من <strong class="num">64,821 TL</strong> في يناير (43.21) إلى <strong class="num">69,392 TL</strong> في يونيو (46.26) ثم <strong class="num">75,165 TL</strong> في نوفمبر (50.11) — بزيادة <strong class="num">+17%</strong>.</p>
+          <details class="mob-spoiler">
+            <summary>جدول تعرفات ديانت المرجعية (2025–2027)<span class="mob-spoiler-badge">${E.diyanet_tariffs_table.length} نشرات</span></summary>
+            <div class="mob-spoiler-body">
+              <div class="table-wrap" style="margin-top:0">
+                <table>
+                  <thead><tr><th>نشرة ديانت</th><th>المدد</th><th class="num">رباعي</th><th class="num">ثلاثي</th><th class="num">ثنائي</th></tr></thead>
+                  <tbody>
+                    ${E.diyanet_tariffs_table.map((d) => `<tr><td><strong>${esc(d.bulletin)}</strong></td><td>${esc(d.durations)}</td><td class="num">${esc(d.quad)}</td><td class="num">${esc(d.triple)}</td><td class="num">${esc(d.double)}</td></tr>`).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="card">
           <h3>الأعباء التنظيمية والقانونية والضريبية في تركيا والسعودية</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>البند التنظيمي</th><th>القيمة / القاعدة</th><th>الأثر على الوكالة</th></tr></thead>
-              <tbody>
-                ${E.regulatory_items_p37_p46.map((r) => `<tr><td><strong>${esc(r.item)}</strong></td><td>${esc(r.value)}</td><td>${esc(r.ref)}</td></tr>`).join("")}
-              </tbody>
-            </table>
-          </div>
+          <details class="mob-spoiler">
+            <summary>قائمة الرسوم والضرائب التنظيمية (${E.regulatory_items_p37_p46.length} بنود)<span class="mob-spoiler-badge">مرجع تنظيمي</span></summary>
+            <div class="mob-spoiler-body">
+              <div class="table-wrap" style="margin-top:0">
+                <table>
+                  <thead><tr><th>البند التنظيمي</th><th>القيمة / القاعدة</th><th>الأثر على الوكالة</th></tr></thead>
+                  <tbody>
+                    ${E.regulatory_items_p37_p46.map((r) => `<tr><td><strong>${esc(r.item)}</strong></td><td>${esc(r.value)}</td><td>${esc(r.ref)}</td></tr>`).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     `;
@@ -1520,6 +1645,12 @@
     document.getElementById("s12-bank").addEventListener("change", (e) => { state.sim12.bank = e.target.value; renderTab("economics"); });
     document.getElementById("s12-inst").addEventListener("change", (e) => { state.sim12.inst = Number(e.target.value); renderTab("economics"); });
     document.getElementById("bus-slider").addEventListener("input", (e) => { state.simBusPax = Number(e.target.value); renderTab("economics"); });
+    sec.querySelectorAll("[data-seat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.simBusPax = Number(btn.dataset.seat);
+        renderTab("economics");
+      });
+    });
     document.getElementById("tax-sar-slider").addEventListener("input", (e) => { state.simTaxBaseSar = Number(e.target.value); renderTab("economics"); });
   }
 
@@ -1721,7 +1852,7 @@
       </div>
     `;
 
-    sec.querySelectorAll("[data-bgrp]").forEach((b) => b.addEventListener("click", () => { state.briefGroupFilter = b.dataset.bgrp; renderBriefsTab(); }));
+    sec.querySelectorAll("[data-bgrp]").forEach((b) => b.addEventListener("click", () => { state.briefGroupFilter = b.dataset.bgrp; renderTab("briefs"); }));
     sec.querySelectorAll("[data-open-brief]").forEach((card) => {
       card.addEventListener("click", () => {
         const b = briefs.find((x) => x.id === card.dataset.openBrief);
@@ -1788,14 +1919,19 @@
       <div class="grid-2" style="margin-top:16px">
         <div class="card">
           <h3>قاموس الوحدات الإحصائية الست غير القابلة للخلط</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>الوحدة</th><th>الأرقام المرجعية</th><th>قاعدة المنع</th></tr></thead>
-              <tbody>
-                ${AU.units_6.map((u) => `<tr><td><strong>${esc(u.unit)}</strong></td><td>${esc(u.example)}</td><td>${esc(u.rule)}</td></tr>`).join("")}
-              </tbody>
-            </table>
-          </div>
+          <details class="mob-spoiler">
+            <summary>عرض القاموس والقاعدة المانعة للجمع المزدوج<span class="mob-spoiler-badge">${AU.units_6.length} وحدات</span></summary>
+            <div class="mob-spoiler-body">
+              <div class="table-wrap" style="margin-top:0">
+                <table>
+                  <thead><tr><th>الوحدة</th><th>الأرقام المرجعية</th><th>قاعدة المنع</th></tr></thead>
+                  <tbody>
+                    ${AU.units_6.map((u) => `<tr><td><strong>${esc(u.unit)}</strong></td><td>${esc(u.example)}</td><td>${esc(u.rule)}</td></tr>`).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="card">
@@ -1806,14 +1942,19 @@
               <div style="margin-top:6px;font-size:13px">${esc(g.items)}</div>
             </div>
           `).join("")}
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>الرمز</th><th>المصدر</th><th>نطاق الإثبات</th></tr></thead>
-              <tbody>
-                ${(AU.source_codes || []).map((s) => `<tr><td class="num"><strong>${esc(s.code)}</strong></td><td>${esc(s.source)}</td><td>${esc(s.scope)}</td></tr>`).join("")}
-              </tbody>
-            </table>
-          </div>
+          <details class="mob-spoiler">
+            <summary>جدول رموز المصادر المرجعية (${(AU.source_codes || []).length})<span class="mob-spoiler-badge">مرجع الرموز</span></summary>
+            <div class="mob-spoiler-body">
+              <div class="table-wrap" style="margin-top:0">
+                <table>
+                  <thead><tr><th>الرمز</th><th>المصدر</th><th>نطاق الإثبات</th></tr></thead>
+                  <tbody>
+                    ${(AU.source_codes || []).map((s) => `<tr><td class="num"><strong>${esc(s.code)}</strong></td><td>${esc(s.source)}</td><td>${esc(s.scope)}</td></tr>`).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -1862,12 +2003,12 @@
     });
     (state.data.tam_ramazan.season_2027 || []).forEach((t) => {
       if (`${t.agency} تمام رمضان ${t.days} ${t.airline}`.toLowerCase().includes(q)) {
-        hits.push({ kind: "تمام رمضان 27", title: `${t.agency} (${t.days} يومًا)`, sub: `رباعي ${fmtUsdOrTry(t.quad_usd)} | ${t.departure}`, action: () => switchTab("monthly") });
+        hits.push({ kind: "تمام رمضان 27", title: `${t.agency} (${t.days} يومًا)`, sub: `رباعي ${fmtUsdOrTry(t.quad_usd)} | ${t.departure}`, action: () => { state.monthlyFocusSubtab = "all"; switchTab("monthly"); } });
       }
     });
     (state.data.ikbal.official_13 || []).forEach((p) => {
       if (`إقبال ikbal ${p.id} ${p.title_ar} ${p.category} ${p.route}`.toLowerCase().includes(q)) {
-        hits.push({ kind: `إقبال ${p.id}`, title: p.title_ar, sub: `رباعي ${fmtUsdOrTry(p.quad_usd)} | متبقٍ ${p.remaining_seats}`, action: () => switchTab("monthly") });
+        hits.push({ kind: `إقبال ${p.id}`, title: p.title_ar, sub: `رباعي ${fmtUsdOrTry(p.quad_usd)} | متبقٍ ${p.remaining_seats}`, action: () => { state.monthlyFocusSubtab = "all"; switchTab("monthly"); } });
       }
     });
     (state.data.research_briefs || []).forEach((b) => {
@@ -1916,6 +2057,142 @@
     }
   }
 
+  const MOBILE_CHAPTERS = [
+    { id: "macro", title: "السوق والطلب الكلي", kpi: "16.92M / 650K+", sub: "PEP، GASTAT، ديانت ونبض المنصات" },
+    { id: "aviation", title: "الطيران والمطارات", kpi: "11 مطارًا", sub: "THY، Pegasus، المطارات وفوارق المحافظات" },
+    { id: "agencies", title: "الشركات والتكتلات (+66)", kpi: "+66 وكالة", sub: "التكتلات، خريطة الأقاليم، والدليل المستكمل" },
+    { id: "monthly", title: "الأسعار H1، تمام وإقبال", kpi: "285 برنامجًا", sub: "موسمية H1، إقبال، تمام رمضان وZair DIY" },
+    { id: "economics", title: "التكاليف والضرائب", kpi: "18.75 / 32 مقعد", sub: "محاكي الهامش، POS، حافلة 45 والضريبة" },
+    { id: "distribution", title: "التسويق والإلغاء", kpi: "11.1% تعادل", sub: "حاسبة Meta/CAC، الحملات، ومخاطر السيولة" },
+    { id: "briefs", title: "ملفات التحقق والثغرات", kpi: "12 ثغرة محلولة", sub: "البطاقات البحثية والفجوات المغلقة" },
+    { id: "audit", title: "منهجية التدقيق والمصادر", kpi: "AUD-01..07", sub: "مصفوفة التوفيق والمصادر العامة" }
+  ];
+
+  function syncSpoilersForViewport(sec) {
+    if (!sec) return;
+    const isDesk = window.innerWidth > 768;
+    sec.querySelectorAll("details.mob-spoiler").forEach((det) => {
+      if (!det.dataset.userToggled) {
+        det.open = isDesk;
+      }
+      if (!det.dataset.boundSpoiler) {
+        det.dataset.boundSpoiler = "1";
+        det.addEventListener("toggle", () => {
+          det.dataset.userToggled = "1";
+        });
+      }
+    });
+  }
+
+  function enhanceTablesForMobile(sec) {
+    if (!sec) return;
+    sec.querySelectorAll(".table-wrap").forEach((wrap) => {
+      const tbl = wrap.querySelector("table");
+      if (!tbl) return;
+      const ths = Array.from(tbl.querySelectorAll("thead th"));
+      const labels = ths.map((th) => th.textContent.trim().replace(/\s+/g, " "));
+      const firstRow = tbl.querySelector("tbody tr");
+      const firstTds = firstRow ? Array.from(firstRow.querySelectorAll("td")) : [];
+      const numCount = firstTds.filter((td) => td.classList.contains("num")).length;
+      const hasLinks = !!tbl.querySelector("tbody a.ext-link, tbody button");
+      const maxPlainTextLen = Math.max(
+        0,
+        ...firstTds.filter((td) => !td.classList.contains("num")).map((td) => td.textContent.trim().length)
+      );
+
+      const isStickyMatrix =
+        labels.length >= 3 &&
+        labels.length <= 5 &&
+        numCount >= 2 &&
+        !hasLinks &&
+        maxPlainTextLen <= 44;
+
+      wrap.classList.remove("is-mob-cards", "is-mob-sticky");
+      if (wrap.previousElementSibling && wrap.previousElementSibling.classList.contains("mob-scroll-hint")) {
+        wrap.previousElementSibling.remove();
+      }
+
+      if (isStickyMatrix) {
+        wrap.classList.add("is-mob-sticky");
+        const hint = document.createElement("div");
+        hint.className = "mob-scroll-hint";
+        hint.textContent = "اسحب الجدول أفقيًا لمقارنة الأعمدة ←";
+        wrap.parentNode.insertBefore(hint, wrap);
+        return;
+      }
+
+      wrap.classList.add("is-mob-cards");
+      tbl.querySelectorAll("tbody tr").forEach((tr) => {
+        const tds = Array.from(tr.querySelectorAll("td"));
+        let headIdx = 0;
+        if (tds.length > 2 && (/^(#|الرمز|الكود)$/.test(labels[0] || "") || tds[0].textContent.trim().length <= 6)) {
+          headIdx = 1;
+        }
+        tds.forEach((td, idx) => {
+          td.dataset.label = labels[idx] || "";
+          const hasAction = !!td.querySelector("a.ext-link, button");
+          const lbl = labels[idx] || "";
+          if (hasAction || (idx === tds.length - 1 && /رابط|مرجع|مصدر|الموقع/.test(lbl))) {
+            td.dataset.mobRole = "cta";
+          } else if (idx === headIdx) {
+            td.dataset.mobRole = "head";
+          } else if (!td.classList.contains("num") && (td.textContent.trim().length > 42 || td.querySelector("br, small"))) {
+            td.dataset.mobRole = "wide";
+          } else {
+            td.removeAttribute("data-mob-role");
+          }
+        });
+      });
+    });
+  }
+
+  function openMobileTabSheet() {
+    document.getElementById("mobSheetBackdrop")?.classList.add("open");
+    document.getElementById("mobileTabSheet")?.classList.add("open");
+  }
+
+  function closeMobileTabSheet() {
+    document.getElementById("mobSheetBackdrop")?.classList.remove("open");
+    document.getElementById("mobileTabSheet")?.classList.remove("open");
+  }
+
+  function syncMobileChrome() {
+    const mobFxPill = document.getElementById("mobFxPill");
+    if (mobFxPill) {
+      const lbl = { USD: "$ USD ⇄", TRY_JAN: "₺ يناير ⇄", TRY_JUN: "₺ يونيو ⇄", TRY_NOV: "₺ نوفمبر ⇄" };
+      mobFxPill.textContent = lbl[state.currency] || "$ USD ⇄";
+    }
+    document.querySelectorAll("#mobileBottomDock [data-dock-tab]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.dockTab === state.activeTab);
+    });
+    const moreBtn = document.getElementById("mobMoreTabsBtn");
+    if (moreBtn) {
+      const inDock = ["macro", "agencies", "monthly"].includes(state.activeTab);
+      moreBtn.classList.toggle("active", !inDock);
+    }
+    const grid = document.getElementById("mobSheetGrid");
+    if (grid) {
+      grid.innerHTML = MOBILE_CHAPTERS.map((ch) => `
+        <button type="button" class="mob-chapter-card ${state.activeTab === ch.id ? "active" : ""}" data-sheet-tab="${ch.id}">
+          <span class="mob-chapter-kpi">${esc(ch.kpi)}</span>
+          <span class="mob-chapter-title">${esc(ch.title)}</span>
+          <span class="mob-chapter-sub">${esc(ch.sub)}</span>
+        </button>`
+      ).join("") + `
+        <a class="mob-chapter-card" href="./prices.html" style="text-decoration:none;border-color:#c99738;background:#fdf8eb;grid-column:1 / -1;">
+          <span class="mob-chapter-kpi" style="color:#8b5e00;">صفحة الأسعار الحية</span>
+          <span class="mob-chapter-title">تقويم وأسعار سوق العمرة (سبتمبر 2026 – شوال 1448) ↗</span>
+          <span class="mob-chapter-sub">رصد شهري لفنادق مكة والمدينة والغرف (2-3-4 أشخاص) وروابط الوكالات</span>
+        </a>`;
+      grid.querySelectorAll("[data-sheet-tab]").forEach((b) => {
+        b.addEventListener("click", () => {
+          closeMobileTabSheet();
+          switchTab(b.dataset.sheetTab);
+        });
+      });
+    }
+  }
+
   function renderTab(tabId) {
     if (!state.data) return;
     preserveFocusRun(() => {
@@ -1927,12 +2204,17 @@
       else if (tabId === "distribution") renderDistributionTab();
       else if (tabId === "briefs") renderBriefsTab();
       else if (tabId === "audit") renderAuditTab();
+      const sec = document.getElementById(`tab-${tabId}`);
+      syncSpoilersForViewport(sec);
+      enhanceTablesForMobile(sec);
     });
+    syncMobileChrome();
   }
 
   function switchTab(tabId) {
+    if (!tabId) return;
     state.activeTab = tabId;
-    document.querySelectorAll(".tab-btn").forEach((b) => {
+    document.querySelectorAll(".tab-btn[data-tab]").forEach((b) => {
       const active = b.dataset.tab === tabId;
       b.classList.toggle("active", active);
       b.setAttribute("aria-selected", active ? "true" : "false");
@@ -1954,7 +2236,7 @@
       document.getElementById("app-subtitle").textContent = state.data.meta.subtitle;
       document.getElementById("loading-state").classList.add("hidden");
 
-      document.querySelectorAll(".tab-btn").forEach((btn) => {
+      document.querySelectorAll(".tab-btn[data-tab]").forEach((btn) => {
         btn.addEventListener("click", () => switchTab(btn.dataset.tab));
       });
 
@@ -1975,16 +2257,54 @@
 
       const sInput = document.getElementById("global-search");
       sInput.addEventListener("input", () => handleGlobalSearch(sInput.value));
+      document.querySelectorAll("#searchQuickTags [data-quick-q]").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          sInput.value = chip.dataset.quickQ || "";
+          handleGlobalSearch(sInput.value);
+          sInput.focus();
+        });
+      });
       document.addEventListener("click", (e) => {
         if (!e.target.closest(".search-bar-wrap")) {
           document.getElementById("search-results-panel").classList.add("hidden");
         }
       });
 
+      const siteHdr = document.getElementById("siteHeader");
+      const heroInfoBtn = document.getElementById("heroInfoToggle");
+      if (heroInfoBtn && siteHdr) {
+        heroInfoBtn.addEventListener("click", () => {
+          const next = !siteHdr.classList.contains("meta-open");
+          siteHdr.classList.toggle("meta-open", next);
+          siteHdr.classList.toggle("fx-open", next);
+          heroInfoBtn.setAttribute("aria-expanded", String(next));
+          heroInfoBtn.textContent = next ? "إخفاء ▴" : "المصادر ▾";
+        });
+      }
+
+      const mobFxPill = document.getElementById("mobFxPill");
+      if (mobFxPill) {
+        mobFxPill.addEventListener("click", () => {
+          const order = ["USD", "TRY_NOV", "TRY_JAN", "TRY_JUN"];
+          const nextCur = order[(order.indexOf(state.currency) + 1) % order.length];
+          document.querySelector(`.fx-btn[data-currency="${nextCur}"]`)?.click();
+        });
+      }
+
+      document.querySelectorAll("#mobileBottomDock [data-dock-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => switchTab(btn.dataset.dockTab));
+      });
+      document.getElementById("mobMoreTabsBtn")?.addEventListener("click", openMobileTabSheet);
+      document.getElementById("mobSheetClose")?.addEventListener("click", closeMobileTabSheet);
+      document.getElementById("mobSheetBackdrop")?.addEventListener("click", closeMobileTabSheet);
+
       document.getElementById("drawer-close").addEventListener("click", closeDrawer);
       document.getElementById("drawer-backdrop").addEventListener("click", closeDrawer);
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeDrawer();
+        if (e.key === "Escape") {
+          closeDrawer();
+          closeMobileTabSheet();
+        }
       });
 
       switchTab("macro");
