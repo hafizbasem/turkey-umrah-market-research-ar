@@ -16,7 +16,7 @@
     { key: "2027-01", title: "يناير 2027", sub: "ذروة عطلة نصف العام (Sömestr)" },
     { key: "2027-02", title: "فبراير 2027", sub: "شعبان + دخول رمضان (8 فبراير)" },
     { key: "2027-03", title: "مارس 2027", sub: "العشر الأواخر + العيد (9 مارس)" },
-    { key: "2027-04", title: "أبريل 2027", sub: "شوال 1448 حتى نهايته (~7 أبريل)" },
+    { key: "2027-04", title: "أبريل 2027", sub: "نهاية شوال 1448 (إغلاق التأشيرة 9 مارس · الخروج 7 أبريل)" },
   ];
 
   const PRESETS = [
@@ -25,7 +25,7 @@
     { id: "somestr", label: "عطلة نصف العام (يناير 2027)", from: "2027-01-01", to: "2027-01-31", month: "2027-01" },
     { id: "ramadan_start", label: "شعبان وبداية رمضان (فبراير)", from: "2027-02-01", to: "2027-02-28", month: "2027-02" },
     { id: "late_ramadan", label: "العشر الأواخر والعيد (مارس)", from: "2027-03-01", to: "2027-03-31", month: "2027-03" },
-    { id: "shawwal", label: "طوال شهر شوال 1448 (10 مارس – 7 أبريل)", from: "2027-03-10", to: "2027-04-08", month: "all" },
+    { id: "shawwal", label: "شوال 1448 (مغادرة 10–23 مارس · عودة حتى 7 أبريل)", from: "2027-03-10", to: "2027-04-08", month: "all" },
   ];
 
   const CHANNELS = [
@@ -46,12 +46,13 @@
     "2027-01": "يناير 2027: ذروة عطلة نصف العام المدرسية (Sömestr) ترفع الطلب العائلي على الغرف الثنائية والثلاثية خاصة في الباقات القصيرة 7–10 أيام والفنادق الملاصقة للحرم.",
     "2027-02": "فبراير 2027: يصادف 1 رمضان 1448 يوم 8 فبراير 2027؛ تنقسم السوق بين برامج شعبان المتصلة ببداية رمضان وبين باقات رمضان الكامل الطويلة (17–40 يومًا).",
     "2027-03": "مارس 2027: ذروة العشر الأواخر وليلة القدر (5 مارس) وعيد الفطر (1 شوال = 9 مارس 2027)، حيث يقفز التسعير بنسبة 80%–180% لفنادق الصفوة والساعة وجبل عمر ثم يهبط سريعًا في شوال.",
-    "2027-04": "أبريل 2027 (نهاية شوال 1448 ~7 أبريل): تراجع حاد في الضغط الفندقي وعودة برامج 8–14 يومًا بأسعار اقتصادية ومتوسطة مع انحسار ذروة رمضان والعيد.",
+    "2027-04": "أبريل 2027 (نهاية شوال 1448): وفق تقويم العمرة السعودي 1448 هـ يتوقف إصدار التأشيرات في 9 مارس 2027 ويكون آخر دخول في 23 مارس وآخر خروج في 7 أبريل 2027؛ لذلك تسجل إقلاعات أبريل الجديدة صفرًا مقابل برامج تغادر في مارس وتعود في أبريل.",
   };
 
   let DATA = null;
   let PACKAGES = [];
   let FILTERED = [];
+  let AGENCIES_BY_NAME = new Map();
 
   const STATE = {
     currency: "USD",
@@ -70,6 +71,7 @@
     budgetMax: 8000,
     onlyFullRooms: false,
     onlyNamedHotel: false,
+    lateShawwalView: "off",
     sort: "date_asc",
     shownLimit: PAGE_SIZE,
   };
@@ -263,6 +265,7 @@
       b.addEventListener("click", () => {
         STATE.preset = pr.id;
         STATE.month = pr.month;
+        STATE.lateShawwalView = "off";
         STATE.dateFrom = pr.from;
         STATE.dateTo = pr.to;
         STATE.shownLimit = PAGE_SIZE;
@@ -295,6 +298,7 @@
       STATE.dateFrom = e.target.value || "2026-09-01";
       STATE.preset = "custom";
       STATE.month = "all";
+      STATE.lateShawwalView = "off";
       STATE.shownLimit = PAGE_SIZE;
       renderAll();
     });
@@ -303,6 +307,7 @@
       STATE.dateTo = e.target.value || "2027-04-08";
       STATE.preset = "custom";
       STATE.month = "all";
+      STATE.lateShawwalView = "off";
       STATE.shownLimit = PAGE_SIZE;
       renderAll();
     });
@@ -403,6 +408,7 @@
     STATE.budgetMax = 8000;
     STATE.onlyFullRooms = false;
     STATE.onlyNamedHotel = false;
+    STATE.lateShawwalView = "off";
     STATE.sort = "date_asc";
     STATE.shownLimit = PAGE_SIZE;
 
@@ -423,14 +429,50 @@
     renderAll();
   }
 
+  function applyMonthSelection(mk, tierOpt) {
+    STATE.month = mk;
+    STATE.preset = mk === "all" ? "all" : "month_" + mk;
+    STATE.lateShawwalView = "off";
+    const rangeMap = {
+      "2026-09": ["2026-09-01", "2026-09-30"],
+      "2026-10": ["2026-10-01", "2026-10-31"],
+      "2026-11": ["2026-11-01", "2026-11-30"],
+      "2026-12": ["2026-12-01", "2026-12-31"],
+      "2027-01": ["2027-01-01", "2027-01-31"],
+      "2027-02": ["2027-02-01", "2027-02-28"],
+      "2027-03": ["2027-03-01", "2027-03-31"],
+      "2027-04": ["2027-04-01", "2027-04-08"],
+    };
+    const [df, dt] = mk !== "all" && rangeMap[mk] ? rangeMap[mk] : ["2026-09-01", "2027-04-08"];
+    STATE.dateFrom = df;
+    STATE.dateTo = dt;
+    document.getElementById("dateFromInput").value = df;
+    document.getElementById("dateToInput").value = dt;
+    if (tierOpt !== undefined) {
+      STATE.tier = tierOpt;
+      document.getElementById("tierSelect").value = tierOpt;
+    }
+    STATE.shownLimit = PAGE_SIZE;
+    renderAll();
+  }
+
   function applyFilters(excludeMonth = false) {
     const q = trNorm(STATE.hotelSearch);
     return PACKAGES.filter((p) => {
-      if (!excludeMonth && STATE.month !== "all" && p.month_key !== STATE.month) return false;
-      if (p.dep_date) {
-        const dNorm = p.dep_date.length === 7 ? p.dep_date + "-15" : p.dep_date;
-        if (STATE.dateFrom && dNorm < STATE.dateFrom) return false;
-        if (STATE.dateTo && dNorm > STATE.dateTo) return false;
+      if (!excludeMonth && STATE.month === "2027-04" && STATE.lateShawwalView !== "off") {
+        if (STATE.lateShawwalView === "return_april") {
+          if (!p.ret_date || p.ret_date < "2027-04-01") return false;
+        } else if (STATE.lateShawwalView === "all_shawwal") {
+          const dNorm = p.dep_date && p.dep_date.length === 7 ? p.dep_date + "-15" : (p.dep_date || "");
+          if (!dNorm || dNorm < "2027-03-10" || dNorm > "2027-03-25") return false;
+        }
+      } else {
+        if (!excludeMonth && STATE.month !== "all" && p.month_key !== STATE.month) return false;
+        if (p.dep_date) {
+          const dNorm = p.dep_date.length === 7 ? p.dep_date + "-15" : p.dep_date;
+          if (STATE.dateFrom && dNorm < STATE.dateFrom) return false;
+          if (STATE.dateTo && dNorm > STATE.dateTo) return false;
+        }
       }
       if (STATE.tier !== "all" && p.duration_band !== STATE.tier) return false;
       if (STATE.agency !== "all" && p.agency !== STATE.agency) return false;
@@ -533,33 +575,7 @@
     box.innerHTML = html;
     box.querySelectorAll("button").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const mk = btn.dataset.month;
-        STATE.month = mk;
-        STATE.preset = mk === "all" ? "all" : "month_" + mk;
-        if (mk !== "all") {
-          const rangeMap = {
-            "2026-09": ["2026-09-01", "2026-09-30"],
-            "2026-10": ["2026-10-01", "2026-10-31"],
-            "2026-11": ["2026-11-01", "2026-11-30"],
-            "2026-12": ["2026-12-01", "2026-12-31"],
-            "2027-01": ["2027-01-01", "2027-01-31"],
-            "2027-02": ["2027-02-01", "2027-02-28"],
-            "2027-03": ["2027-03-01", "2027-03-31"],
-            "2027-04": ["2027-04-01", "2027-04-08"],
-          };
-          const [df, dt] = rangeMap[mk];
-          STATE.dateFrom = df;
-          STATE.dateTo = dt;
-          document.getElementById("dateFromInput").value = df;
-          document.getElementById("dateToInput").value = dt;
-        } else {
-          STATE.dateFrom = "2026-09-01";
-          STATE.dateTo = "2027-04-08";
-          document.getElementById("dateFromInput").value = STATE.dateFrom;
-          document.getElementById("dateToInput").value = STATE.dateTo;
-        }
-        STATE.shownLimit = PAGE_SIZE;
-        renderAll();
+        applyMonthSelection(btn.dataset.month);
       });
     });
 
@@ -831,6 +847,67 @@
     });
   }
 
+  function renderShawwalBanner() {
+    const banner = document.getElementById("shawwalCutoffBanner");
+    if (!banner) return;
+    if (STATE.month !== "2027-04" && STATE.preset !== "shawwal") {
+      banner.style.display = "none";
+      banner.innerHTML = "";
+      return;
+    }
+
+    const retAprilCount = PACKAGES.filter((p) => p.ret_date && p.ret_date >= "2027-04-01").length;
+    const allShawwalCount = PACKAGES.filter((p) => p.dep_date && p.dep_date >= "2027-03-10" && p.dep_date <= "2027-03-25").length;
+
+    banner.style.display = "block";
+    if (STATE.month === "2027-04") {
+      banner.innerHTML = `
+        <div class="shawwal-banner-head">
+          <h3 class="shawwal-banner-title">نافذة الإغلاق الرسمي لعمرة 1448 هـ (شوال — أبريل 2027)</h3>
+          <span class="shawwal-cutoff-pill">آخر تأشيرة: 9 مارس · آخر دخول: 23 مارس · آخر خروج: 7 أبريل 2027</span>
+        </div>
+        <p class="shawwal-banner-desc">بحسب الجدول التنظيمي السعودي لموسم 1448 هـ، تتوقف رحلات الدخول الجديدة قبل 1 أبريل 2027 (لذلك تسجل إقلاعات أبريل الجديدة 0 عروض)، بينما تتاح مغادرات شوال الفعلية بين 10 و25 مارس 2027 وتمتد عودة جزء كبير منها إلى أول أسبوع من أبريل.</p>
+        <div class="shawwal-toggle-row" role="group" aria-label="تبديل عرض نهاية شوال وأبريل">
+          <button type="button" class="shawwal-toggle-btn ${STATE.lateShawwalView === "off" ? "active" : ""}" data-shawwal-mode="off">إقلاعات أبريل فقط (0 رحلات جديدة)</button>
+          <button type="button" class="shawwal-toggle-btn ${STATE.lateShawwalView === "return_april" ? "active" : ""}" data-shawwal-mode="return_april">رحلات شوال العائدة في أبريل (${fmtInt(retAprilCount)} عرضًا)</button>
+          <button type="button" class="shawwal-toggle-btn ${STATE.lateShawwalView === "all_shawwal" ? "active" : ""}" data-shawwal-mode="all_shawwal">كافة مغادرات شوال المتاحة (${fmtInt(allShawwalCount)} عرضًا)</button>
+        </div>
+      `;
+      banner.querySelectorAll("[data-shawwal-mode]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          STATE.lateShawwalView = btn.dataset.shawwalMode;
+          STATE.shownLimit = PAGE_SIZE;
+          renderAll();
+        });
+      });
+    } else {
+      banner.innerHTML = `
+        <div class="shawwal-banner-head">
+          <h3 class="shawwal-banner-title">فترة شوال 1448 هـ (10 مارس – 7 أبريل 2027)</h3>
+          <span class="shawwal-cutoff-pill">آخر دخول 23 مارس · آخر خروج 7 أبريل 2027</span>
+        </div>
+        <p class="shawwal-banner-desc">تعرض القائمة مغادرات شوال المنطلقة من 10 إلى 23 مارس 2027 (قبل إغلاق الدخول في 23 مارس)، منها ${fmtInt(retAprilCount)} برنامجًا تمتد إقامته وعودته إلى أبريل 2027.</p>
+        <div class="shawwal-toggle-row">
+          <button type="button" class="shawwal-toggle-btn" id="jumpReturnAprilBtn">فرز العائد في أبريل 2027 (${fmtInt(retAprilCount)} عرضًا)</button>
+        </div>
+      `;
+      const jmp = document.getElementById("jumpReturnAprilBtn");
+      if (jmp) {
+        jmp.addEventListener("click", () => {
+          STATE.month = "2027-04";
+          STATE.preset = "month_2027-04";
+          STATE.lateShawwalView = "return_april";
+          STATE.dateFrom = "2027-04-01";
+          STATE.dateTo = "2027-04-08";
+          document.getElementById("dateFromInput").value = STATE.dateFrom;
+          document.getElementById("dateToInput").value = STATE.dateTo;
+          STATE.shownLimit = PAGE_SIZE;
+          renderAll();
+        });
+      }
+    }
+  }
+
   function renderCoverageMatrix() {
     const box = document.getElementById("coverageMatrixBox");
     const tiers = ["7-10", "11-16", "17-40"];
@@ -842,10 +919,15 @@
           const walkAg = new Set(subset.filter((p) => p.makkah_access_type === "walking").map((p) => p.agency).filter(Boolean));
           const medQ = median(subset.map((p) => p.room_quad_usd));
           const active = STATE.month === m.key && STATE.tier === t;
+          const isAprilCutoff = m.key === "2027-04" && subset.length === 0;
+          const mainCell = isAprilCutoff ? "إغلاق 1448" : (medQ !== null ? esc(fmtPrice(medQ)) : "—");
+          const subCell = isAprilCutoff
+            ? "0 إقلاع جديد · عودة مارس–أبريل"
+            : `${agAll.size} شركة (${walkAg.size} مشي) · ${subset.length} عرض`;
           return `
             <td class="matrix-cell" data-m="${m.key}" data-t="${t}" style="${active ? "background:#e3f3ec;outline:2px solid var(--emerald);" : ""}">
-              <span class="matrix-cell-main">${medQ !== null ? esc(fmtPrice(medQ)) : "—"}</span>
-              <span class="matrix-cell-sub">${agAll.size} شركة (${walkAg.size} مشي) · ${subset.length} عرض</span>
+              <span class="matrix-cell-main">${mainCell}</span>
+              <span class="matrix-cell-sub">${subCell}</span>
             </td>`;
         })
         .join("");
@@ -870,12 +952,7 @@
 
     box.querySelectorAll(".matrix-cell").forEach((cell) => {
       cell.addEventListener("click", () => {
-        STATE.month = cell.dataset.m;
-        STATE.tier = cell.dataset.t;
-        STATE.preset = "month_" + STATE.month;
-        document.getElementById("tierSelect").value = STATE.tier;
-        STATE.shownLimit = PAGE_SIZE;
-        renderAll();
+        applyMonthSelection(cell.dataset.m, cell.dataset.t);
         document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
@@ -893,9 +970,29 @@
     const mobWrap = document.getElementById("mobileCardsWrap");
 
     if (!slice.length) {
-      const empty = `<div class="footnote" style="padding:16px;">لا توجد نتائج مطابقة لهذا المزيج من الفلاتر. جرّب توسيع سقف الميزانية أو تغيير نوع الوصول للحرم أو مسح البحث.</div>`;
+      let empty = `<div class="footnote" style="padding:16px;">لا توجد نتائج مطابقة لهذا المزيج من الفلاتر. جرّب توسيع سقف الميزانية أو تغيير نوع الوصول للحرم أو مسح البحث.</div>`;
+      if (STATE.month === "2027-04" && STATE.lateShawwalView === "off") {
+        const retAprilCount = PACKAGES.filter((p) => p.ret_date && p.ret_date >= "2027-04-01").length;
+        const allShawwalCount = PACKAGES.filter((p) => p.dep_date && p.dep_date >= "2027-03-10" && p.dep_date <= "2027-03-25").length;
+        empty = `
+          <div class="shawwal-banner" style="padding:18px; border-radius:12px;">
+            <h4 style="margin:0 0 8px;color:#7c2d12;">توقف الإقلاعات الجديدة في أبريل 2027 وفق تقويم العمرة السعودي 1448 هـ</h4>
+            <p class="shawwal-banner-desc">آخر يوم لإصدار تأشيرات عمرة 1448 هو 9 مارس 2027، وآخر دخول 23 مارس 2027، وآخر خروج 7 أبريل 2027؛ لذلك لا توجد رحلات ذهاب جديدة بتاريخ أبريل. يمكنك استعراض رحلات شوال التي تغادر في مارس وتعود في أبريل أو كافة مغادرات شوال المتاحة:</p>
+            <div class="shawwal-toggle-row">
+              <button type="button" class="shawwal-toggle-btn" data-quick-shawwal="return_april">عرض الرحلات العائدة في أبريل (${fmtInt(retAprilCount)} عرضًا)</button>
+              <button type="button" class="shawwal-toggle-btn" data-quick-shawwal="all_shawwal">عرض كافة مغادرات شوال (${fmtInt(allShawwalCount)} عرضًا)</button>
+            </div>
+          </div>`;
+      }
       deskWrap.innerHTML = empty;
       mobWrap.innerHTML = empty;
+      document.querySelectorAll("[data-quick-shawwal]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          STATE.lateShawwalView = btn.dataset.quickShawwal;
+          STATE.shownLimit = PAGE_SIZE;
+          renderAll();
+        });
+      });
       document.getElementById("paginationWrap").innerHTML = "";
       return;
     }
@@ -1046,7 +1143,16 @@
     document.getElementById("drawerEyebrow").textContent = `${p.agency} — ${tierLabel(p.duration_band)}`;
     document.getElementById("drawerTitle").textContent = `${p.makkah_hotel_ar} (${p.makkah_stars_ar})`;
 
-    const safeUrl = p.source_url && /^https?:\/\//i.test(p.source_url) ? p.source_url : "";
+    const safeHref = (u) => (u && /^https?:\/\//i.test(u) && !/vertexaisearch|drive\.google\.com/i.test(u) ? u : "");
+    const safeUrl = safeHref(p.source_url);
+    const agInfo = AGENCIES_BY_NAME.get(trNorm(p.agency));
+    const agLinks = [];
+    if (agInfo) {
+      if (safeHref(agInfo.website)) agLinks.push(`<a href="${esc(agInfo.website)}" target="_blank" rel="noopener noreferrer" class="agency-link-chip">الموقع الرسمي للشركة</a>`);
+      if (safeHref(agInfo.ig)) agLinks.push(`<a href="${esc(agInfo.ig)}" target="_blank" rel="noopener noreferrer" class="agency-link-chip">Instagram الوكالة</a>`);
+      if (safeHref(agInfo.x)) agLinks.push(`<a href="${esc(agInfo.x)}" target="_blank" rel="noopener noreferrer" class="agency-link-chip">حساب X الرسمي</a>`);
+      if (safeHref(agInfo.ad_url)) agLinks.push(`<a href="${esc(agInfo.ad_url)}" target="_blank" rel="noopener noreferrer" class="agency-link-chip">صفحة العروض الموسمية</a>`);
+    }
     const origLine =
       p.original_currency && p.original_currency !== "USD" && p.original_prices
         ? `<p class="footnote" style="margin-top:8px;">السعر الأصلي بالإعلان (${esc(p.original_currency)}): رباعي ${fmtInt(p.original_prices.quad)} | ثلاثي ${fmtInt(p.original_prices.triple)} | ثنائي ${fmtInt(p.original_prices.double)}</p>`
@@ -1098,6 +1204,8 @@
         <div style="margin-bottom:8px;">${channelBadge(p.source_channel)} <span class="matrix-cell-sub" style="display:inline;">${esc(p.source_label || "")}</span></div>
         ${p.notes_ar ? `<p style="font-size:0.84rem;color:var(--ink);margin:0 0 10px;">${esc(p.notes_ar)}</p>` : ""}
         ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary-outline" style="display:inline-block;text-decoration:none;">فتح رابط الإعلان / المصدر الأصلي</a>` : ""}
+        ${agInfo && agInfo.metric ? `<p class="footnote" style="margin-top:10px;">تصنيف الوكالة (${esc(agInfo.tier || "مرخصة")}): ${esc(agInfo.metric)}</p>` : ""}
+        ${agLinks.length ? `<div class="agency-links-row">${agLinks.join("")}</div>` : ""}
       </div>
     `;
 
@@ -1146,6 +1254,7 @@
 
   function renderAll() {
     renderMonthPills();
+    renderShawwalBanner();
     const rows = sortRows(applyFilters(false));
     renderKpis(rows);
     renderHotelSpotlight(rows);
@@ -1162,6 +1271,12 @@
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       DATA = await resp.json();
       PACKAGES = Array.isArray(DATA.packages) ? DATA.packages : [];
+      AGENCIES_BY_NAME = new Map();
+      if (Array.isArray(DATA.agencies)) {
+        DATA.agencies.forEach((a) => {
+          if (a && a.name) AGENCIES_BY_NAME.set(trNorm(a.name), a);
+        });
+      }
 
       const hdrMeta = document.getElementById("hdrMeta");
       const metaAg = DATA.meta && DATA.meta.distinct_agencies ? DATA.meta.distinct_agencies : new Set(PACKAGES.map((p) => p.agency)).size;
