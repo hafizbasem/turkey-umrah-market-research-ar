@@ -1,8 +1,8 @@
 {
   "meta": {
     "title": "مرصد أبحاث سوق العمرة التركي (2025–2027) — المنصة التحليلية المستقلة",
-    "subtitle": "قاعدة استخبارات سوقية كمية ومستمرة: أعداد المعتمرين، الحصص الرسمية والخاصة، حصة الشركات والتكتلات (+67 وكالة)، حركة الطيران والتأشيرة، حزمة تمام رمضان وإقبال، واقتصاديات التسعير والضرائب والتسويق — دون دليل فنادق أو بيانات شخصية.",
-    "updated_at": "2026-11-14",
+    "subtitle": "قاعدة استخبارات سوقية كمية ومستمرة: أعداد المعتمرين، الحصص الرسمية والخاصة، حصة الشركات والتكتلات (+251 وكالة مرصودة)، حركة الطيران والتأشيرة، حزمة تمام رمضان وإقبال، واقتصاديات التسعير والضرائب والتسويق — دون دليل فنادق أو بيانات شخصية.",
+    "updated_at": "2026-11-20",
     "usd_try_jan": 43.2138,
     "usd_try_jun": 46.2614,
     "usd_try_nov": 50.11,
@@ -251,7 +251,7 @@
       {
         "id": "high_diyanet",
         "label": "سيناريو الحصة المرتفعة لديانت (23%)",
-        "diyanet_pct": 23.0,
+        "diyanet_pct": 23,
         "diyanet": 73000,
         "private": 244000,
         "total": 317000,
@@ -271,7 +271,7 @@
       {
         "id": "low_diyanet",
         "label": "سيناريو التمدد الواسع للخاص (12%)",
-        "diyanet_pct": 12.0,
+        "diyanet_pct": 12,
         "diyanet": 73000,
         "private": 535000,
         "total": 608000,
@@ -330,7 +330,7 @@
       "q1_foreign_yoy": "-11.56%",
       "gender_female_pct": 51.8,
       "gender_male_pct": 48.2,
-      "entry_air_pct": 86.0,
+      "entry_air_pct": 86,
       "entry_land_pct": 13.6,
       "entry_sea_pct": 0.4,
       "months": [
@@ -2244,7 +2244,7 @@
     {
       "band": "$1,400 – $1,599 (الذروة الوسطى)",
       "count": 20,
-      "pct": 37.0
+      "pct": 37
     },
     {
       "band": "$1,600 – $1,799",
@@ -8024,7 +8024,7 @@
         "city_nights": "3 مكة + 4 مدينة",
         "airline": "Pegasus Airlines",
         "intercity": "قطار الحرمين",
-        "per_person_try": 20765.0,
+        "per_person_try": 20765,
         "indicative_usd": 415.08,
         "url": "https://www.zair.co/tr"
       },
@@ -8036,7 +8036,7 @@
         "city_nights": "4 مكة + 3 مدينة",
         "airline": "Pegasus Airlines",
         "intercity": "قطار الحرمين",
-        "per_person_try": 22856.0,
+        "per_person_try": 22856,
         "indicative_usd": 456.88,
         "url": "https://www.zair.co/tr"
       },
@@ -8060,7 +8060,7 @@
         "city_nights": "4 مكة + 3 مدينة",
         "airline": "Pegasus Airlines",
         "intercity": "قطار الحرمين",
-        "per_person_try": 29725.0,
+        "per_person_try": 29725,
         "indicative_usd": 594.19,
         "url": "https://www.zair.co/tr"
       },
@@ -8072,7 +8072,7 @@
         "city_nights": "3 مكة + 4 مدينة",
         "airline": "Pegasus Airlines",
         "intercity": "قطار الحرمين",
-        "per_person_try": 30091.0,
+        "per_person_try": 30091,
         "indicative_usd": 601.51,
         "url": "https://www.zair.co/tr"
       },
@@ -8096,7 +8096,7 @@
         "city_nights": "3 مكة + 4 مدينة",
         "airline": "Pegasus Airlines",
         "intercity": "قطار الحرمين",
-        "per_person_try": 33111.0,
+        "per_person_try": 33111,
         "indicative_usd": 661.88,
         "url": "https://www.zair.co/tr"
       },
@@ -8108,7 +8108,7 @@
         "city_nights": "4 مكة + 3 مدينة",
         "airline": "Pegasus Airlines",
         "intercity": "قطار الحرمين",
-        "per_person_try": 34716.0,
+        "per_person_try": 34716,
         "indicative_usd": 693.96,
         "url": "https://www.zair.co/tr"
       },
@@ -8132,7 +8132,7 @@
         "city_nights": "7 مكة + 13 مدينة",
         "airline": "AJet",
         "intercity": "نقل خاص",
-        "per_person_try": 42167.0,
+        "per_person_try": 42167,
         "indicative_usd": 842.9,
         "url": "https://www.zair.co/tr"
       },
@@ -8144,7 +8144,7 @@
         "city_nights": "7 مكة + 13 مدينة",
         "airline": "AJet",
         "intercity": "نقل خاص",
-        "per_person_try": 51626.0,
+        "per_person_try": 51626,
         "indicative_usd": 1031.98,
         "url": "https://www.zair.co/tr"
       },
@@ -8388,7 +8388,7 @@
       {
         "bracket": "العزيزية / الشتل (أساسي SAR 100)",
         "base_sar": 100,
-        "muni_5": 105.0,
+        "muni_5": 105,
         "vat_15_total": 120.75,
         "per_person_9n_usd": 72.45
       },
@@ -8402,15 +8402,15 @@
       {
         "bracket": "إعمار جراند / متوسط مشي (SAR 500)",
         "base_sar": 500,
-        "muni_5": 525.0,
+        "muni_5": 525,
         "vat_15_total": 603.75,
         "per_person_9n_usd": 362.25
       },
       {
         "bracket": "أبراج / ساحات الحرم (SAR 1,200)",
         "base_sar": 1200,
-        "muni_5": 1260.0,
-        "vat_15_total": 1449.0,
+        "muni_5": 1260,
+        "vat_15_total": 1449,
         "per_person_9n_usd": 869.4
       }
     ],
@@ -8445,7 +8445,7 @@
       {
         "occ": "رباعية (4 أشخاص)",
         "room_share": 262.5,
-        "fixed": 840.0,
+        "fixed": 840,
         "with_reserve_3pct": 1135.58,
         "sell_15pct_margin": 1335.97,
         "gross_profit": 200.4,
@@ -8453,17 +8453,17 @@
       },
       {
         "occ": "ثلاثية (3 أشخاص)",
-        "room_share": 350.0,
-        "fixed": 840.0,
+        "room_share": 350,
+        "fixed": 840,
         "with_reserve_3pct": 1225.7,
-        "sell_15pct_margin": 1442.0,
+        "sell_15pct_margin": 1442,
         "gross_profit": 216.3,
         "note_50p": "+106$ فوق سعر الرباعي الإيضاحي"
       },
       {
         "occ": "ثنائية (شخصان)",
-        "room_share": 525.0,
-        "fixed": 840.0,
+        "room_share": 525,
+        "fixed": 840,
         "with_reserve_3pct": 1405.95,
         "sell_15pct_margin": 1654.06,
         "gross_profit": 248.11,
@@ -8532,7 +8532,7 @@
       },
       {
         "pax": 45,
-        "fill_pct": 100.0,
+        "fill_pct": 100,
         "revenue": 65250,
         "variable": 47250,
         "fixed": 7500,
@@ -8548,31 +8548,31 @@
         "installments": "دفعة واحدة (Single-Shot)",
         "albaraka": 3.56,
         "kuveyt": 1.89,
-        "turkiye_finans": 0.0
+        "turkiye_finans": 0
       },
       {
         "installments": "3 أقساط",
         "albaraka": 7.12,
         "kuveyt": 2.25,
-        "turkiye_finans": 0.0
+        "turkiye_finans": 0
       },
       {
         "installments": "6 أقساط",
         "albaraka": 12.46,
         "kuveyt": 2.6,
-        "turkiye_finans": 0.0
+        "turkiye_finans": 0
       },
       {
         "installments": "9 أقساط",
         "albaraka": 17.8,
         "kuveyt": 2.95,
-        "turkiye_finans": 0.0
+        "turkiye_finans": 0
       },
       {
         "installments": "12 قسطًا",
         "albaraka": 23.14,
         "kuveyt": 3.35,
-        "turkiye_finans": 0.0
+        "turkiye_finans": 0
       }
     ],
     "regulatory_items_p37_p46": [
@@ -8763,33 +8763,33 @@
       "spend_vs_cac": [
         {
           "spend": 300,
-          "c20": 15.0,
+          "c20": 15,
           "c40": 7.5,
-          "c60": 5.0
+          "c60": 5
         },
         {
           "spend": 600,
-          "c20": 30.0,
-          "c40": 15.0,
-          "c60": 10.0
+          "c20": 30,
+          "c40": 15,
+          "c60": 10
         },
         {
           "spend": 1200,
-          "c20": 60.0,
-          "c40": 30.0,
-          "c60": 20.0
+          "c20": 60,
+          "c40": 30,
+          "c60": 20
         },
         {
           "spend": 2400,
-          "c20": 120.0,
-          "c40": 60.0,
-          "c60": 40.0
+          "c20": 120,
+          "c40": 60,
+          "c60": 40
         },
         {
           "spend": 4800,
-          "c20": 240.0,
-          "c40": 120.0,
-          "c60": 80.0
+          "c20": 240,
+          "c40": 120,
+          "c60": 80
         }
       ],
       "chats_vs_bookings": [
@@ -8879,6 +8879,30 @@
         "offer": "14–20 يومًا: 1,550$ – 1,650$",
         "reach": "محبس مكة / المركزية (40 صلاة)",
         "hook": "نقل داخلي مجاني من كافة ولايات تركيا"
+      },
+      {
+        "account": "@hisarturizm",
+        "offer": "يناير ورمضان 10–15 يومًا: 1,490$ (فندق فوكو مكة voco IHG)",
+        "reach": "إسطنبول وأنقرة — فندق 5 نجوم عالمي مع شتل 24/7",
+        "hook": "إقامة فاخرة في voco Makkah + البوسفور المدينة مع طيران THY"
+      },
+      {
+        "account": "@ravzaturizm",
+        "offer": "يناير ورمضان 14 يومًا: 1,525$ (فندق الماسة جراند Grand Al Massa)",
+        "reach": "كل تركيا — مسافة مشي 650م لساحة الحرم",
+        "hook": "فندق الماسة جراند أجياد + نصف إقامة بوفيه مفتوح"
+      },
+      {
+        "account": "@ikramturizm",
+        "offer": "عمرة السومستر 15 يومًا: 1,680$ (فندق إنفينيتي مكة 5 نجوم)",
+        "reach": "إسطنبول وقونية — مشيًا للحرم الشريف",
+        "hook": "11 ليلة مكة + 3 ليالٍ المدينة المنورة شاملة الوجبات"
+      },
+      {
+        "account": "@nizamturizm",
+        "offer": "عمرة رجب وشعبان 10 أيام: 2,450$ (فندق العنوان جبل عمر Address 5*)",
+        "reach": "فئة VIP ديلوكس — إطلالة الكعبة والحرم",
+        "hook": "سكن صف أول جبل عمر + قطار الحرمين السريع"
       }
     ],
     "europe_diaspora_p39": "تعتمد وكالات الجالية الأوروبية تسعيرًا باليورو: DİTİB بين 1,400€ و1,700€، وIGMG بخصم 100€ للشباب ضمن قوافل أوروبا.",

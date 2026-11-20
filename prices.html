@@ -163,9 +163,147 @@
                 <option value="date_asc">ترتيب: تاريخ المغادرة (الأقرب أولًا)</option>
                 <option value="quad_asc">ترتيب: الأرخص للغرفة الرباعية</option>
                 <option value="quad_desc">ترتيب: الأعلى للغرفة الرباعية</option>
+                <option value="nightly_asc">ترتيب: الأوفر في تكلفة الليلة الواحدة</option>
                 <option value="dist_asc">ترتيب: الأقرب للمسجد الحرام (بالمتر)</option>
                 <option value="days_desc">ترتيب: الأطول مدة بالأيام</option>
+                <option value="days_asc">ترتيب: الأقصر مدة بالأيام</option>
+                <option value="madinah_desc">ترتيب: الأكثر ليالي في المدينة المنورة</option>
               </select>
+            </div>
+          </div>
+
+          <div class="filter-section-grid">
+            <div class="filter-field">
+              <label for="vakit40Select">40 صلاة بالمدينة المنورة</label>
+              <select id="vakit40Select">
+                <option value="all">كل البرامج</option>
+                <option value="40v">عروض 40 صلاة فقط (8+ ليالٍ بالمدينة)</option>
+                <option value="40v_shuttle">40 صلاة بالمدينة + فنادق شتل</option>
+                <option value="40v_walk">40 صلاة بالمدينة + فنادق مشي</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="ramadanWindowSelect">الشريحة الموسمية والرمضانية</label>
+              <select id="ramadanWindowSelect">
+                <option value="all">كل المواسم الهجرية</option>
+                <option value="somestr">عطلة السومستر (14–28 يناير)</option>
+                <option value="rajab_miraj">رجب والإسراء والمعراج</option>
+                <option value="shaban_berat">شعبان وليلة النصف (برات)</option>
+                <option value="ram_first10">رمضان — أول 10 أيام (2–11 فبراير)</option>
+                <option value="ram_first20">رمضان — أول 20 يومًا</option>
+                <option value="ram_mid15">رمضان — منتصف الشهر 15 يومًا</option>
+                <option value="ram_last10">رمضان — العشر الأواخر وليلة القدر</option>
+                <option value="ram_last20">رمضان — آخر 20 يومًا</option>
+                <option value="ram_tam">تمام رمضان 30+ يومًا كاملًا</option>
+                <option value="shawwal">موسم شوال 1448 هـ</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="sectorSelect">نوع الجهة / القطاع</label>
+              <select id="sectorSelect">
+                <option value="all">الكل (الوكالات الخاصة + ديانت)</option>
+                <option value="private">الشركات الخاصة فقط (بدون ديانت)</option>
+                <option value="diyanet">ديانت التركية فقط</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="zoneSelect">منطقة السكن بمكة</label>
+              <select id="zoneSelect">
+                <option value="all">كل مناطق مكة</option>
+                <option value="الصفوة">أبراج الصفوة</option>
+                <option value="جبل عمر">جبل عمر</option>
+                <option value="أجياد">أجياد</option>
+                <option value="إبراهيم الخليل">المسفلة / إبراهيم الخليل</option>
+                <option value="محبس الجن">محبس الجن (شتل)</option>
+                <option value="الششة">الششة / بن داود (شتل)</option>
+                <option value="العزيزية">العزيزية (شتل)</option>
+                <option value="الروضة">الروضة (شتل)</option>
+                <option value="النسيم">النسيم (شتل 5 نجوم)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-section-grid">
+            <div class="filter-field">
+              <label for="citySelect">مدينة / مطار الانطلاق</label>
+              <select id="citySelect">
+                <option value="all">كل مدن الانطلاق</option>
+                <option value="anatolia">خارج إسطنبول مباشر (كل الأناضول)</option>
+                <option value="إسطنبول">إسطنبول</option>
+                <option value="أنقرة">أنقرة</option>
+                <option value="إزمير">إزمير</option>
+                <option value="قوجة إيلي">قوجة إيلي / بورصة</option>
+                <option value="سيواس">سيواس / توقات</option>
+                <option value="قونيا">قونية</option>
+                <option value="قيصري">قيصري</option>
+                <option value="غازي عنتاب">غازي عنتاب / شانلي أورفا</option>
+                <option value="ديار بكر">ديار بكر / ماردين / فان</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="airlineSelect">شركة الطيران</label>
+              <select id="airlineSelect">
+                <option value="all">كل شركات الطيران</option>
+                <option value="thy">Turkish Airlines (THY)</option>
+                <option value="saudia">الخطوط السعودية (Saudia)</option>
+                <option value="ajet">AJet</option>
+                <option value="pegasus">Pegasus</option>
+                <option value="flynas">Flynas / Flyadeal</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="madinahHotelSelect">فندق المدينة المنورة</label>
+              <select id="madinahHotelSelect">
+                <option value="all">كل فنادق المدينة</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="nightlyBandSelect">تكلفة الليلة الواحدة (USD)</label>
+              <select id="nightlyBandSelect">
+                <option value="all">كل الأسعار / ليلة</option>
+                <option value="0-85">أقل من $85 / ليلة</option>
+                <option value="85-110">$85 – $110 / ليلة</option>
+                <option value="110-140">$110 – $140 / ليلة</option>
+                <option value="140-200">$140 – $200 / ليلة</option>
+                <option value="200-9999">أكثر من $200 / ليلة</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-section-grid">
+            <div class="filter-field">
+              <label for="makkahNightsSelect">ليالي مكة المكرمة</label>
+              <select id="makkahNightsSelect">
+                <option value="all">كل ليالي مكة</option>
+                <option value="1-5">1–5 ليالٍ بمكة</option>
+                <option value="6-8">6–8 ليالٍ بمكة</option>
+                <option value="9-12">9–12 ليلة بمكة</option>
+                <option value="13-20">13–20 ليلة بمكة</option>
+                <option value="21-45">21+ ليلة بمكة</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="madinahNightsSelect">ليالي المدينة المنورة</label>
+              <select id="madinahNightsSelect">
+                <option value="all">كل ليالي المدينة</option>
+                <option value="1-2">1–2 ليلة بالمدينة</option>
+                <option value="3-3">3 ليالٍ بالمدينة</option>
+                <option value="4-5">4–5 ليالٍ بالمدينة</option>
+                <option value="6-20">6+ ليالٍ بالمدينة</option>
+                <option value="8-25">8+ ليالٍ (40 صلاة كاملة)</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="precisionSelect">دقة التاريخ المعلن</label>
+              <select id="precisionSelect">
+                <option value="all">كل الدقات</option>
+                <option value="exact">تواريخ ذهاب محددة باليوم</option>
+                <option value="window">تواريخ مرنة / نوافذ شهرية</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="budgetMinInput">الحد الأدنى للسعر (USD)</label>
+              <input id="budgetMinInput" type="number" min="0" max="8000" step="50" placeholder="مثال: 1000" />
             </div>
           </div>
 
@@ -187,6 +325,11 @@
             <label class="toggle-check">
               <input id="onlyNamedHotelCheck" type="checkbox" />
               <span>استبعاد الإعلانات غير المسمى فيها فندق مكة</span>
+            </label>
+
+            <label class="toggle-check">
+              <input id="only40VakitCheck" type="checkbox" />
+              <span>برامج 40 صلاة بالمدينة فقط</span>
             </label>
           </div>
         </div>

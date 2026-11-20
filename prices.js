@@ -95,6 +95,63 @@
         STATE.sort = "quad_asc";
       },
     },
+    {
+      id: "vakit40_shuttle",
+      label: "40 صلاة بالمدينة (فنادق شتل)",
+      apply: () => {
+        STATE.vakit40 = "40v_shuttle";
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "vakit40_all",
+      label: "كل عروض 40 صلاة",
+      apply: () => {
+        STATE.vakit40 = "40v";
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "ramadan_tam_shuttle",
+      label: "تمام رمضان 30+ (نقل ترددي)",
+      apply: () => {
+        STATE.ramadanWindow = "ram_tam";
+        STATE.distance = "shuttle";
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "ramadan_last10",
+      label: "العشر الأواخر وليلة القدر",
+      apply: () => {
+        STATE.ramadanWindow = "ram_last10";
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "shawwal_season",
+      label: "عروض شوال 1448",
+      apply: () => {
+        STATE.ramadanWindow = "shawwal";
+        STATE.sort = "quad_asc";
+      },
+    },
+    {
+      id: "anatolia_direct",
+      label: "انطلاقات خارج إسطنبول مباشر",
+      apply: () => {
+        STATE.city = "anatolia";
+        STATE.sort = "date_asc";
+      },
+    },
+    {
+      id: "private_only",
+      label: "الشركات الخاصة فقط (بدون ديانت)",
+      apply: () => {
+        STATE.sector = "private";
+        STATE.sort = "quad_asc";
+      },
+    },
   ];
 
   let DATA = null;
@@ -120,9 +177,22 @@
     distance: "all",
     stars: "all",
     channel: "all",
+    vakit40: "all",
+    ramadanWindow: "all",
+    sector: "all",
+    zone: "all",
+    city: "all",
+    airline: "all",
+    madinahHotel: "all",
+    nightlyBand: "all",
+    makkahNights: "all",
+    madinahNights: "all",
+    precision: "all",
+    budgetMin: "",
     budgetMax: 8000,
     onlyFullRooms: false,
     onlyNamedHotel: false,
+    only40Vakit: false,
     lateShawwalView: "off",
     sort: "date_asc",
     shownLimit: PAGE_SIZE,
@@ -304,9 +374,22 @@
     if (STATE.distance !== "all") n++;
     if (STATE.stars !== "all") n++;
     if (STATE.channel !== "all") n++;
+    if (STATE.vakit40 !== "all") n++;
+    if (STATE.ramadanWindow !== "all") n++;
+    if (STATE.sector !== "all") n++;
+    if (STATE.zone !== "all") n++;
+    if (STATE.city !== "all") n++;
+    if (STATE.airline !== "all") n++;
+    if (STATE.madinahHotel !== "all") n++;
+    if (STATE.nightlyBand !== "all") n++;
+    if (STATE.makkahNights !== "all") n++;
+    if (STATE.madinahNights !== "all") n++;
+    if (STATE.precision !== "all") n++;
+    if (STATE.budgetMin) n++;
     if (STATE.budgetMax < 8000) n++;
     if (STATE.onlyFullRooms) n++;
     if (STATE.onlyNamedHotel) n++;
+    if (STATE.only40Vakit) n++;
     return n;
   }
 
@@ -354,6 +437,23 @@
         opt.textContent = `${ag} (${agCounts[ag]})`;
         agSel.appendChild(opt);
       });
+
+    // Madinah hotels populated dynamically
+    const mdCounts = {};
+    PACKAGES.forEach((p) => {
+      if (p.madinah_hotel_ar) mdCounts[p.madinah_hotel_ar] = (mdCounts[p.madinah_hotel_ar] || 0) + 1;
+    });
+    const mdSel = document.getElementById("madinahHotelSelect");
+    if (mdSel) {
+      Object.keys(mdCounts)
+        .sort((a, b) => mdCounts[b] - mdCounts[a] || a.localeCompare(b))
+        .forEach((mh) => {
+          const opt = document.createElement("option");
+          opt.value = mh;
+          opt.textContent = `${mh} (${mdCounts[mh]})`;
+          mdSel.appendChild(opt);
+        });
+    }
 
     // Canonical Makkah Hotels for dropdown & datalist
     const hotelStats = {};
@@ -456,9 +556,22 @@
           STATE.distance = "all";
           STATE.stars = "all";
           STATE.channel = "all";
+          STATE.vakit40 = "all";
+          STATE.ramadanWindow = "all";
+          STATE.sector = "all";
+          STATE.zone = "all";
+          STATE.city = "all";
+          STATE.airline = "all";
+          STATE.madinahHotel = "all";
+          STATE.nightlyBand = "all";
+          STATE.makkahNights = "all";
+          STATE.madinahNights = "all";
+          STATE.precision = "all";
+          STATE.budgetMin = "";
           STATE.budgetMax = 8000;
           STATE.onlyFullRooms = false;
           STATE.onlyNamedHotel = false;
+          STATE.only40Vakit = false;
           STATE.lateShawwalView = "off";
           STATE.sort = "date_asc";
           STATE.shownLimit = PAGE_SIZE;
@@ -473,19 +586,34 @@
   }
 
   function syncControlsFromState() {
-    document.getElementById("dateFromInput").value = STATE.dateFrom;
-    document.getElementById("dateToInput").value = STATE.dateTo;
-    document.getElementById("tierSelect").value = STATE.tier;
-    document.getElementById("agencySelect").value = STATE.agency;
-    document.getElementById("hotelSearchInput").value = STATE.hotelSearch;
-    document.getElementById("hotelSelect").value = STATE.hotelId;
-    document.getElementById("distanceSelect").value = STATE.distance;
-    document.getElementById("starsSelect").value = STATE.stars;
-    document.getElementById("budgetMaxInput").value = STATE.budgetMax;
+    const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    setV("dateFromInput", STATE.dateFrom);
+    setV("dateToInput", STATE.dateTo);
+    setV("tierSelect", STATE.tier);
+    setV("agencySelect", STATE.agency);
+    setV("hotelSearchInput", STATE.hotelSearch);
+    setV("hotelSelect", STATE.hotelId);
+    setV("distanceSelect", STATE.distance);
+    setV("starsSelect", STATE.stars);
+    setV("vakit40Select", STATE.vakit40);
+    setV("ramadanWindowSelect", STATE.ramadanWindow);
+    setV("sectorSelect", STATE.sector);
+    setV("zoneSelect", STATE.zone);
+    setV("citySelect", STATE.city);
+    setV("airlineSelect", STATE.airline);
+    setV("madinahHotelSelect", STATE.madinahHotel);
+    setV("nightlyBandSelect", STATE.nightlyBand);
+    setV("makkahNightsSelect", STATE.makkahNights);
+    setV("madinahNightsSelect", STATE.madinahNights);
+    setV("precisionSelect", STATE.precision);
+    setV("budgetMinInput", STATE.budgetMin);
+    setV("budgetMaxInput", STATE.budgetMax);
     document.getElementById("budgetMaxLabel").textContent = STATE.budgetMax >= 8000 ? "الكل (بلا سقف)" : fmtPrice(STATE.budgetMax);
     document.getElementById("onlyFullRoomsCheck").checked = STATE.onlyFullRooms;
     document.getElementById("onlyNamedHotelCheck").checked = STATE.onlyNamedHotel;
-    document.getElementById("sortSelect").value = STATE.sort;
+    const chk40 = document.getElementById("only40VakitCheck");
+    if (chk40) chk40.checked = STATE.only40Vakit;
+    setV("sortSelect", STATE.sort);
     document.querySelectorAll("[data-rail-sort]").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.railSort === STATE.sort);
     });
@@ -550,6 +678,37 @@
 
     document.getElementById("starsSelect").addEventListener("change", (e) => {
       STATE.stars = e.target.value;
+      STATE.shownLimit = PAGE_SIZE;
+      renderAll();
+    });
+
+    const wireSel = (id, prop) => {
+      document.getElementById(id)?.addEventListener("change", (e) => {
+        STATE[prop] = e.target.value;
+        STATE.shownLimit = PAGE_SIZE;
+        renderAll();
+      });
+    };
+    wireSel("vakit40Select", "vakit40");
+    wireSel("ramadanWindowSelect", "ramadanWindow");
+    wireSel("sectorSelect", "sector");
+    wireSel("zoneSelect", "zone");
+    wireSel("citySelect", "city");
+    wireSel("airlineSelect", "airline");
+    wireSel("madinahHotelSelect", "madinahHotel");
+    wireSel("nightlyBandSelect", "nightlyBand");
+    wireSel("makkahNightsSelect", "makkahNights");
+    wireSel("madinahNightsSelect", "madinahNights");
+    wireSel("precisionSelect", "precision");
+
+    document.getElementById("budgetMinInput")?.addEventListener("input", (e) => {
+      STATE.budgetMin = e.target.value.trim();
+      STATE.shownLimit = PAGE_SIZE;
+      renderAll();
+    });
+
+    document.getElementById("only40VakitCheck")?.addEventListener("change", (e) => {
+      STATE.only40Vakit = e.target.checked;
       STATE.shownLimit = PAGE_SIZE;
       renderAll();
     });
@@ -679,9 +838,22 @@
     STATE.distance = "all";
     STATE.stars = "all";
     STATE.channel = "all";
+    STATE.vakit40 = "all";
+    STATE.ramadanWindow = "all";
+    STATE.sector = "all";
+    STATE.zone = "all";
+    STATE.city = "all";
+    STATE.airline = "all";
+    STATE.madinahHotel = "all";
+    STATE.nightlyBand = "all";
+    STATE.makkahNights = "all";
+    STATE.madinahNights = "all";
+    STATE.precision = "all";
+    STATE.budgetMin = "";
     STATE.budgetMax = 8000;
     STATE.onlyFullRooms = false;
     STATE.onlyNamedHotel = false;
+    STATE.only40Vakit = false;
     STATE.lateShawwalView = "off";
     STATE.sort = "date_asc";
     STATE.shownLimit = PAGE_SIZE;
@@ -716,6 +888,26 @@
     }
     STATE.shownLimit = PAGE_SIZE;
     renderAll();
+  }
+
+  function matchesRamadanWin(p, win) {
+    const dep = p.dep_date || "";
+    const ret = p.ret_date || dep;
+    const d = p.days || 0;
+    if (!dep) return false;
+    switch (win) {
+      case "somestr": return dep >= "2027-01-14" && dep <= "2027-01-29";
+      case "rajab_miraj": return dep >= "2026-12-10" && dep <= "2027-01-13";
+      case "shaban_berat": return dep >= "2027-01-15" && dep <= "2027-02-02";
+      case "ram_first10": return dep >= "2027-02-02" && dep <= "2027-02-12" && d <= 18;
+      case "ram_first20": return dep >= "2027-02-02" && dep <= "2027-02-12" && d >= 16 && d <= 25;
+      case "ram_mid15": return dep >= "2027-02-10" && dep <= "2027-02-22" && d <= 22;
+      case "ram_last10": return dep >= "2027-02-22" && dep <= "2027-03-04" && d <= 18;
+      case "ram_last20": return dep >= "2027-02-13" && dep <= "2027-02-24" && d >= 16 && d <= 26;
+      case "ram_tam": return (dep >= "2027-01-28" && dep <= "2027-02-14" && d >= 25) || (dep <= "2027-02-12" && ret >= "2027-03-08");
+      case "shawwal": return dep >= "2027-03-10" && dep <= "2027-04-08";
+      default: return true;
+    }
   }
 
   function applyFilters(excludeMonth = false) {
@@ -773,6 +965,58 @@
 
       if (STATE.onlyFullRooms && p.price_completeness !== "full_2_3_4") return false;
       if (STATE.onlyNamedHotel && p.is_generic_hotel) return false;
+      if (STATE.only40Vakit && !p._is40V) return false;
+
+      if (STATE.vakit40 !== "all") {
+        if (!p._is40V) return false;
+        if (STATE.vakit40 === "40v_shuttle" && p.makkah_access_type !== "shuttle") return false;
+        if (STATE.vakit40 === "40v_walk" && p.makkah_access_type !== "walking") return false;
+      }
+      if (STATE.ramadanWindow !== "all" && !matchesRamadanWin(p, STATE.ramadanWindow)) return false;
+      if (STATE.sector !== "all") {
+        const isDiy = p.source_channel === "diyanet" || /diyanet/i.test(p.agency || "");
+        if (STATE.sector === "diyanet" && !isDiy) return false;
+        if (STATE.sector === "private" && isDiy) return false;
+      }
+      if (STATE.zone !== "all" && !(p.makkah_zone_ar || "").includes(STATE.zone)) return false;
+      if (STATE.city !== "all") {
+        const loc = `${p.departure_hub || ""} ${p.agency_city || ""} ${p.notes_ar || ""}`;
+        if (STATE.city === "anatolia") {
+          if (/^إسطنبول/.test(p.departure_hub || "") && !/جميع الولايات|عموم الولايات|أنقرة|إزمير|قونية|قيصري|سيواس|توقات|قوجة إيلي|بورصة|ديار بكر|فان|ماردين|غازي عنتاب|طرابزون|أرضروم/.test(loc)) return false;
+        } else if (!loc.includes(STATE.city)) {
+          return false;
+        }
+      }
+      if (STATE.airline !== "all") {
+        const al = `${p.airline || ""}`.toLowerCase();
+        if (STATE.airline === "thy" && !/thy|türk|turk|التركية/.test(al)) return false;
+        if (STATE.airline === "saudia" && !/saudi|سعود/.test(al)) return false;
+        if (STATE.airline === "ajet" && !/ajet|a-jet|anadol/.test(al)) return false;
+        if (STATE.airline === "pegasus" && !/pegasus|بيجاسوس/.test(al)) return false;
+        if (STATE.airline === "flynas" && !/nas|adeal|ناس/.test(al)) return false;
+      }
+      if (STATE.madinahHotel !== "all" && p.madinah_hotel_ar !== STATE.madinahHotel) return false;
+      if (STATE.nightlyBand !== "all") {
+        const [mnN, mxN] = STATE.nightlyBand.split("-").map(Number);
+        if (!p._nightlyUsd || p._nightlyUsd < mnN || p._nightlyUsd > mxN) return false;
+      }
+      if (STATE.makkahNights !== "all") {
+        const [mnM, mxM] = STATE.makkahNights.split("-").map(Number);
+        if (p._mkNights === null || p._mkNights < mnM || p._mkNights > mxM) return false;
+      }
+      if (STATE.madinahNights !== "all") {
+        const [mnD, mxD] = STATE.madinahNights.split("-").map(Number);
+        if (p._mdNights === null || p._mdNights < mnD || p._mdNights > mxD) return false;
+      }
+      if (STATE.precision !== "all") {
+        const isEx = p.date_precision === "exact" || p.date_precision === "exact_date";
+        if (STATE.precision === "exact" && !isEx) return false;
+        if (STATE.precision === "window" && isEx) return false;
+      }
+      if (STATE.budgetMin) {
+        const base = p.room_quad_usd ?? p.room_triple_usd ?? p.room_double_usd;
+        if (!base || base < Number(STATE.budgetMin)) return false;
+      }
 
       return true;
     });
@@ -797,6 +1041,15 @@
       }
       if (STATE.sort === "days_desc") {
         return byNum(a.days, b.days, true);
+      }
+      if (STATE.sort === "days_asc") {
+        return byNum(a.days, b.days, false);
+      }
+      if (STATE.sort === "nightly_asc") {
+        return byNum(a._nightlyUsd, b._nightlyUsd, false);
+      }
+      if (STATE.sort === "madinah_desc") {
+        return byNum(a._mdNights, b._mdNights, true);
       }
       // date_asc
       const da = a.dep_date || a.month_key || "9999";
@@ -1438,9 +1691,13 @@
                     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:3px;">
                       <span class="badge-stars">${esc(p.makkah_stars_ar)}</span>
                       ${accessBadge}
+                      ${p._is40V ? `<span class="badge-walk">40 صلاة بالمدينة</span>` : ""}
                     </div>
                   </td>
-                  <td>${esc(p.madinah_hotel_ar || "غير محدد بالإعلان")}</td>
+                  <td>
+                    <div>${esc(p.madinah_hotel_ar || "غير محدد بالإعلان")}</div>
+                    ${p._mdNights ? `<span class="matrix-cell-sub">${esc(p._mkNights + " مكة + " + p._mdNights + " المدينة")}</span>` : ""}
+                  </td>
                   <td class="num">
                     <strong>${esc(fmtPrice(p.room_quad_usd))}</strong>
                     ${origNote}${perNightDesk}
@@ -1488,8 +1745,9 @@
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
                 <span class="badge-stars">${esc(p.makkah_stars_ar)}</span>
                 ${accessBadge}
+                ${p._is40V ? `<span class="badge-walk">40 صلاة</span>` : ""}
               </div>
-              <div class="matrix-cell-sub" style="margin-top:4px;">المدينة: ${esc(p.madinah_hotel_ar || "غير محدد بالإعلان")}</div>
+              <div class="matrix-cell-sub" style="margin-top:4px;">المدينة: ${esc(p.madinah_hotel_ar || "غير محدد بالإعلان")}${p._mdNights ? " (" + esc(p._mkNights + "م+" + p._mdNights + "مد") + ")" : ""}</div>
             </div>
             <div class="pkg-lens-row">
               ${lens.perNightUsd ? `<span class="val-pill is-mid">${esc(fmtPrice(lens.perNightUsd))} / ليلة</span>` : ""}
@@ -1758,7 +2016,7 @@
 
   function exportCsv() {
     if (!FILTERED.length) return;
-    const headers = ["month", "dep_date", "ret_date", "duration_band", "days", "agency", "makkah_hotel_ar", "makkah_hotel_en_tr", "makkah_stars", "makkah_distance_m", "access_type", "madinah_hotel", "quad_usd", "triple_usd", "double_usd", "source_channel", "source_url"];
+    const headers = ["month", "dep_date", "ret_date", "duration_band", "days", "makkah_nights", "madinah_nights", "is_40_vakit", "agency", "makkah_hotel_ar", "makkah_hotel_en_tr", "makkah_stars", "makkah_distance_m", "access_type", "madinah_hotel", "quad_usd", "triple_usd", "double_usd", "source_channel", "source_url"];
     const lines = [headers.join(",")];
     FILTERED.forEach((p) => {
       const row = [
@@ -1767,6 +2025,9 @@
         p.ret_date,
         p.duration_band,
         p.days,
+        p._mkNights ?? "",
+        p._mdNights ?? "",
+        p._is40V ? "yes" : "no",
         p.agency,
         p.makkah_hotel_ar,
         p.makkah_hotel_en_tr,
@@ -1812,7 +2073,24 @@
       const resp = await fetch("./data/market-prices-calendar.json");
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       DATA = await resp.json();
-      PACKAGES = Array.isArray(DATA.packages) ? DATA.packages : [];
+      PACKAGES = (Array.isArray(DATA.packages) ? DATA.packages : []).map((p) => {
+        const note = p.notes_ar || "";
+        const totN = p.nights || (p.days && p.days > 1 ? p.days - 1 : null);
+        const mkM = note.match(/(\d+)\s*(?:ليلة|ليالٍ|ليالي|ليال)\s*(?:في\s*)?مكة/);
+        const mdM = note.match(/(\d+)\s*(?:ليلة|ليالٍ|ليالي|ليال)\s*(?:في\s*)?المدينة/);
+        let mkN = mkM ? Number(mkM[1]) : null;
+        let mdN = mdM ? Number(mdM[1]) : null;
+        if (mkN !== null && mdN === null && totN && totN > mkN) mdN = totN - mkN;
+        if (mdN !== null && mkN === null && totN && totN > mdN) mkN = totN - mdN;
+        if (mkN === null && mdN === null && totN && totN >= 2) {
+          mdN = totN <= 6 ? 2 : totN <= 14 ? 3 : totN <= 22 ? 4 : 5;
+          mkN = Math.max(1, totN - mdN);
+        }
+        const base = p.room_quad_usd ?? p.room_triple_usd ?? p.room_double_usd ?? null;
+        const nightly = base && totN && totN > 0 ? Math.round(base / totN) : null;
+        const is40 = (mdN !== null && mdN >= 8) || /(?:40\s*(?:vakit|صلاة|وقت)|أربعين\s*صلاة)/i.test(note);
+        return { ...p, _mkNights: mkN, _mdNights: mdN, _nightlyUsd: nightly, _is40V: is40 };
+      });
       AGENCIES_BY_NAME = new Map();
       if (Array.isArray(DATA.agencies)) {
         DATA.agencies.forEach((a) => {
