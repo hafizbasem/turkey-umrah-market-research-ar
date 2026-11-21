@@ -188,6 +188,7 @@
     makkahNights: "all",
     madinahNights: "all",
     precision: "all",
+    urlKind: "all",
     budgetMin: "",
     budgetMax: 8000,
     onlyFullRooms: false,
@@ -206,6 +207,55 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  const GENERIC_URL_PATHS = new Set([
+    "/umre", "/umre-turlari", "/umre-programlari", "/umre-fiyatlari", "/turlar", "/turlarimiz",
+    "/packages", "/tours", "/ramazan-umresi", "/ramazan-umre-turlari", "/ramazan-umre-programlari",
+    "/sevval-umresi", "/somestr-umresi", "/ekonomik-umre", "/luks-umre", "/servisli-umre",
+    "/yurume-mesafeli-umre", "/hizmetler/umre", "/programlarimiz", "/2026-2027-umre-turlari-ve-fiyatlari",
+    "/konya-cikisli-umre-turlari-ve-fiyatlari", "/tr/umre", "/tr/umre-turlari", "/tr/umre-programlari"
+  ]);
+
+  function classifySourceUrl(u) {
+    if (!u || !/^https?:\/\//i.test(u)) return "generic";
+    try {
+      const pr = new URL(u);
+      const path = pr.pathname.replace(/\/+$/, "");
+      const lowP = path.toLowerCase();
+      const qs = pr.search || "";
+      if (/\.pdf$/i.test(lowP) || (/diyanet\.gov\.tr/i.test(pr.hostname) && /\/detay\/\d+/i.test(lowP))) {
+        return "brochure";
+      }
+      if (/umredunyasi\.com/i.test(pr.hostname)) {
+        return lowP.includes("/umre-turlari/") && !/\/(kategori|sure|yildiz)\//i.test(lowP) ? "direct_third" : "generic";
+      }
+      if (/facebook\.com/i.test(pr.hostname)) {
+        return (u.includes("ads/library") && qs.includes("id=")) || /\/(posts|videos|reel|photo|permalink)/i.test(lowP) || /story_fbid=|fbid=/i.test(qs)
+          ? "direct_agency"
+          : "generic";
+      }
+      if (/instagram\.com/i.test(pr.hostname)) {
+        return /\/(p|reel|tv)\//i.test(lowP) ? "direct_agency" : "generic";
+      }
+      if (!path || /^\/(tr|en|ar|home|index\.html|index\.php)$/i.test(lowP)) return "generic";
+      if (GENERIC_URL_PATHS.has(lowP) && !qs) return "generic";
+      if (/diyanet\.gov\.tr|hac\.gov\.tr/i.test(pr.hostname)) return "generic";
+      const segs = lowP.split("/").filter(Boolean);
+      if (segs.length === 1 && !/\d/.test(segs[0]) && !qs && /(umre|tur|fiyat|program|hakkimizda|iletisim)/i.test(segs[0]) && !/(gumus|altin|platin)-paket/i.test(segs[0])) {
+        return "generic";
+      }
+      return "direct_agency";
+    } catch {
+      return "generic";
+    }
+  }
+
+  function sourceLinkLabel(kind) {
+    if (kind === "direct_agency") return "برنامج مباشر ↗";
+    if (kind === "direct_third") return "برنامج (Umre Dünyası) ↗";
+    if (kind === "brochure") return "بروشور PDF ↗";
+    return "موقع الشركة ↗";
   }
 
   function trNorm(str) {
@@ -567,6 +617,7 @@
           STATE.makkahNights = "all";
           STATE.madinahNights = "all";
           STATE.precision = "all";
+          STATE.urlKind = "all";
           STATE.budgetMin = "";
           STATE.budgetMax = 8000;
           STATE.onlyFullRooms = false;
@@ -606,6 +657,7 @@
     setV("makkahNightsSelect", STATE.makkahNights);
     setV("madinahNightsSelect", STATE.madinahNights);
     setV("precisionSelect", STATE.precision);
+    setV("urlKindSelect", STATE.urlKind);
     setV("budgetMinInput", STATE.budgetMin);
     setV("budgetMaxInput", STATE.budgetMax);
     document.getElementById("budgetMaxLabel").textContent = STATE.budgetMax >= 8000 ? "الكل (بلا سقف)" : fmtPrice(STATE.budgetMax);
@@ -700,6 +752,7 @@
     wireSel("makkahNightsSelect", "makkahNights");
     wireSel("madinahNightsSelect", "madinahNights");
     wireSel("precisionSelect", "precision");
+    wireSel("urlKindSelect", "urlKind");
 
     document.getElementById("budgetMinInput")?.addEventListener("input", (e) => {
       STATE.budgetMin = e.target.value.trim();
@@ -849,6 +902,7 @@
     STATE.makkahNights = "all";
     STATE.madinahNights = "all";
     STATE.precision = "all";
+    STATE.urlKind = "all";
     STATE.budgetMin = "";
     STATE.budgetMax = 8000;
     STATE.onlyFullRooms = false;
@@ -1012,6 +1066,13 @@
         const isEx = p.date_precision === "exact" || p.date_precision === "exact_date";
         if (STATE.precision === "exact" && !isEx) return false;
         if (STATE.precision === "window" && isEx) return false;
+      }
+      if (STATE.urlKind !== "all") {
+        if (STATE.urlKind === "direct_any") {
+          if (p._urlKind === "generic") return false;
+        } else if (p._urlKind !== STATE.urlKind) {
+          return false;
+        }
       }
       if (STATE.budgetMin) {
         const base = p.room_quad_usd ?? p.room_triple_usd ?? p.room_double_usd;
@@ -1669,7 +1730,7 @@
               const isPinned = STATE.compareIds.includes(p.id);
               const safeUrl = p.source_url && /^https?:\/\//i.test(p.source_url) ? p.source_url : "";
               const linkHtml = safeUrl
-                ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link" onclick="event.stopPropagation();">فتح المصدر</a>`
+                ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link" onclick="event.stopPropagation();">${esc(sourceLinkLabel(p._urlKind))}</a>`
                 : `<span class="matrix-cell-sub">بدون رابط</span>`;
 
               return `
@@ -1771,7 +1832,7 @@
             <div class="pkg-card-footer">
               <button type="button" class="pkg-detail-btn">التفاصيل</button>
               <button type="button" class="compare-pin-btn ${isPinned ? "active" : ""}" data-compare-id="${esc(p.id)}">${isPinned ? "في المقارنة" : "+ قارن"}</button>
-              ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link" onclick="event.stopPropagation();">رابط المصدر ↗</a>` : `<span class="matrix-cell-sub">—</span>`}
+              ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link" onclick="event.stopPropagation();">${esc(sourceLinkLabel(p._urlKind))}</a>` : `<span class="matrix-cell-sub">—</span>`}
             </div>
           </article>`;
       })
@@ -1876,7 +1937,7 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
                   <span>${lens.perNightUsd ? `<strong>${esc(fmtPrice(lens.perNightUsd))}</strong> / ليلة` : ""} ${lens.deltaPill}</span>
-                  ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link">فتح المصدر ↗</a>` : ""}
+                  ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="ext-link">${esc(sourceLinkLabel(p._urlKind))}</a>` : ""}
                 </div>
               </div>`;
           })
@@ -2000,7 +2061,7 @@
     if (stickyCta) {
       stickyCta.innerHTML = `
         <button type="button" class="compare-pin-btn ${isPinned ? "active" : ""}" data-drawer-compare="${esc(p.id)}" style="flex:0 0 auto;padding:8px 14px;">${isPinned ? "في المقارنة" : "+ أضف للمقارنة"}</button>
-        ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary-outline" style="flex:1;text-align:center;">فتح المصدر الموثق ↗</a>` : ""}
+        ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener noreferrer" class="btn-primary-outline" style="flex:1;text-align:center;">${esc(sourceLinkLabel(p._urlKind))}</a>` : ""}
       `;
       stickyCta.querySelector("[data-drawer-compare]")?.addEventListener("click", () => toggleCompareId(p.id));
     }
@@ -2016,7 +2077,7 @@
 
   function exportCsv() {
     if (!FILTERED.length) return;
-    const headers = ["month", "dep_date", "ret_date", "duration_band", "days", "makkah_nights", "madinah_nights", "is_40_vakit", "agency", "makkah_hotel_ar", "makkah_hotel_en_tr", "makkah_stars", "makkah_distance_m", "access_type", "madinah_hotel", "quad_usd", "triple_usd", "double_usd", "source_channel", "source_url"];
+    const headers = ["month", "dep_date", "ret_date", "duration_band", "days", "makkah_nights", "madinah_nights", "is_40_vakit", "agency", "makkah_hotel_ar", "makkah_hotel_en_tr", "makkah_stars", "makkah_distance_m", "access_type", "madinah_hotel", "quad_usd", "triple_usd", "double_usd", "source_channel", "url_kind", "source_url"];
     const lines = [headers.join(",")];
     FILTERED.forEach((p) => {
       const row = [
@@ -2039,6 +2100,7 @@
         p.room_triple_usd ?? "",
         p.room_double_usd ?? "",
         p.source_channel,
+        p._urlKind,
         p.source_url,
       ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`);
       lines.push(row.join(","));
@@ -2089,7 +2151,7 @@
         const base = p.room_quad_usd ?? p.room_triple_usd ?? p.room_double_usd ?? null;
         const nightly = base && totN && totN > 0 ? Math.round(base / totN) : null;
         const is40 = (mdN !== null && mdN >= 8) || /(?:40\s*(?:vakit|صلاة|وقت)|أربعين\s*صلاة)/i.test(note);
-        return { ...p, _mkNights: mkN, _mdNights: mdN, _nightlyUsd: nightly, _is40V: is40 };
+        return { ...p, _mkNights: mkN, _mdNights: mdN, _nightlyUsd: nightly, _is40V: is40, _urlKind: classifySourceUrl(p.source_url) };
       });
       AGENCIES_BY_NAME = new Map();
       if (Array.isArray(DATA.agencies)) {

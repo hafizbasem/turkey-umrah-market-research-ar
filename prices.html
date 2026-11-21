@@ -302,6 +302,17 @@
               </select>
             </div>
             <div class="filter-field">
+              <label for="urlKindSelect">دقة رابط المصدر</label>
+              <select id="urlKindSelect">
+                <option value="all">كل الروابط</option>
+                <option value="direct_any">روابط مباشرة للبرنامج (الوكالة + Umre Dünyası + PDF)</option>
+                <option value="direct_agency">صفحة البرنامج على موقع الوكالة فقط</option>
+                <option value="direct_third">صفحة البرنامج المباشرة (Umre Dünyası)</option>
+                <option value="brochure">بروشورات ديانت الرسمية PDF</option>
+                <option value="generic">روابط عامة للشركات فقط</option>
+              </select>
+            </div>
+            <div class="filter-field">
               <label for="budgetMinInput">الحد الأدنى للسعر (USD)</label>
               <input id="budgetMinInput" type="number" min="0" max="8000" step="50" placeholder="مثال: 1000" />
             </div>
